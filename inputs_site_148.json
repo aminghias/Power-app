@@ -1,0 +1,66 @@
+{
+    "cost_weight": 0.5,
+    "carbon_weight": 0.3,
+    "reliability_weight": 0.2,
+    "grid_connected": true,
+    "allow_grid_feed": true,
+    "bess_systems": [
+        {
+            "name": "BESS_1",
+            "capacity_kwh": 1000.0,
+            "power_rating_kw": 500.0,
+            "current_soc": 72,
+            "discharge_threshold": 50
+        }
+    ],
+    "installed_sources": [
+        {
+            "name": "Solar",
+            "cost": 5.0,
+            "carbon_footprint": 0.05,
+            "min_capacity": 100.0,
+            "max_capacity": 500.0,
+            "kw_reading": 150.0
+        },
+        {
+            "name": "Diesel_1",
+            "cost": 25.0,
+            "carbon_footprint": 0.8,
+            "min_capacity": 100.0,
+            "max_capacity": 500.0,
+            "kw_reading": 100.0
+        },
+        {
+            "name": "Gas_1",
+            "cost": 20.0,
+            "carbon_footprint": 0.5,
+            "min_capacity": 100.0,
+            "max_capacity": 500.0,
+            "kw_reading": 100.0
+        },
+        {
+            "name": "Gas_2",
+            "cost": 20.0,
+            "carbon_footprint": 0.5,
+            "min_capacity": 100.0,
+            "max_capacity": 500.0,
+            "kw_reading": 100.0
+        },
+        {
+            "name": "Gas_3",
+            "cost": 20.0,
+            "carbon_footprint": 0.5,
+            "min_capacity": 100.0,
+            "max_capacity": 500.0,
+            "kw_reading": 100.0
+        },
+        {
+            "name": "Grid",
+            "cost": 15.0,
+            "carbon_footprint": 0.6,
+            "min_capacity": 0.0,
+            "max_capacity": 1500.0,
+            "kw_reading": 100.0
+        }
+    ]
+}
