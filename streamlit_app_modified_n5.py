@@ -10,7 +10,7 @@ from power_optimizer_modified_n5 import PowerOptimizer, PowerSource, BatteryEner
 
 # Page config
 st.set_page_config(
-    page_title="Power Optimization System",
+    page_title="APEX Adaptive Power Exchange Power Optimization System",
     page_icon="⚡",
     layout="wide",
     initial_sidebar_state="expanded"
