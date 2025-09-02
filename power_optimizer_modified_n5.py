@@ -521,54 +521,6 @@ class PowerOptimizer:
         return remaining_load
 
 
-
-
-    # def allocate_active_power(self, sources, total_load):
-    #     """Allocate active power among available sources"""
-    #     remaining_load = total_load
-    #     print('\nAllocating power among sources:')
-    #     for source in sources:
-    #         print(f" - {source.name} (Max: {source.max_capacity} kW, Min: {source.min_capacity} kW, Cost: {source.total_cost:.2f} PKR/kWh, Reliability: {source.reliability_score:.2f})")
-    #     print(f"Total load to allocate: {total_load:.2f} kW")
-
-    #     # Renewable sources first (solar, wind)
-    #     renewable_sources = [s for s in sources if s.source_type == 'renewable']
-    #     conventional_sources = [s for s in sources if s.source_type not in ['renewable', 'grid']]
-    #     grid_sources = [s for s in sources if s.source_type == 'grid']
-        
-    #     # Priority 1: Use renewable sources first
-    #     for source in renewable_sources:
-    #         if remaining_load <= 0:
-    #             break
-            
-    #         allocation = min(remaining_load, source.max_capacity)
-    #         source.optimized_active_load = allocation
-    #         remaining_load -= allocation
-    #         print(f"Renewable allocation to {source.name}: {allocation:.2f} kW")
-        
-    #     # Priority 2: Use conventional sources by efficiency (cost)
-    #     for source in conventional_sources:
-    #         if remaining_load <= 0:
-    #             break
-            
-    #         min_required = source.min_capacity
-    #         max_possible = min(source.max_capacity, remaining_load + min_required)
-            
-    #         if max_possible >= min_required:
-    #             allocation = min(max_possible, remaining_load + min_required)
-    #             source.optimized_active_load = allocation
-    #             remaining_load -= allocation
-    #             print(f"Conventional allocation to {source.name}: {allocation:.2f} kW")
-        
-    #     # Priority 3: Use grid if needed
-    #     for source in grid_sources:
-    #         if remaining_load > 0:
-    #             allocation = min(remaining_load, source.max_capacity)
-    #             source.optimized_active_load = allocation
-    #             remaining_load -= allocation
-    #             print(f"Grid allocation to {source.name}: {allocation:.2f} kW")
-
-    #     return remaining_load
     
     def allocate_reactive_power(self, sources, total_reactive_load):
         """Allocate reactive power among sources"""
@@ -621,8 +573,23 @@ class PowerOptimizer:
                     # Equal load sharing for similar capacity units
                     if all(abs(s.max_capacity - group_sources[0].max_capacity) < 50 for s in group_sources):
                         avg_load = total_group_load / len(group_sources)
+                        # min_c = min(s.min_capacity for s in group_sources)
                         for s in group_sources:
-                            s.optimized_active_load = avg_load
+                            min_c = s.min_capacity
+                            if avg_load < min_c:
+                                # s.optimized_active_load = min_c
+                                break
+                            else:
+                                s.optimized_active_load = avg_load
+                #     # make new source_group and remove 1 source form source_groups
+                # new_source_group = group_sources[0]
+                # source_groups[group_name] = group_sources[1:]
+                # source_groups[new_source_group.name] = [new_source_group]
+                # new_total_group_load = sum(s.optimized_active_load for s in source_groups[new_source_group.name])
+                # print(f"New total group load for {new_source_group.name}: {new_total_group_load}")
+                # if new_total_group_load > 0:
+
+
                     else:
                         # Proportional load sharing based on capacity
                         total_max = sum(s.max_capacity for s in group_sources)
