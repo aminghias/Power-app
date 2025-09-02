@@ -486,6 +486,7 @@ class PowerOptimizer:
                         source.optimized_active_load = min_allocation
                         remaining_load -= min_allocation
                         print(f"Minimum allocation to {source.name}: {min_allocation:.2f} kW")
+                        break
                 # elif source.name.lower() == 'grid' and self.grid_connected or source.name.lower() == 'bess' :
                 elif source.name.lower() == 'grid' and self.grid_connected:
                     min_allocation = 10
