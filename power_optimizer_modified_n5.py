@@ -649,9 +649,11 @@ class PowerOptimizer:
             print("No available power sources")
             return
         
-        total_active_load = sum(s.current_active_load for s in available_sources)
-        total_reactive_load = sum(s.current_reactive_load for s in available_sources)
-        
+        # total_active_load = sum(s.current_active_load for s in available_sources)
+        # total_reactive_load = sum(s.current_reactive_load for s in available_sources)
+        total_active_load = sum(s.current_active_load for s in self.sources)
+        total_reactive_load = sum(s.current_reactive_load for s in self.sources)
+
         # Add BESS current contribution to total load
         total_bess_discharge = sum(abs(b.current_power_input) for b in self.bess_systems if b.current_power_input < 0)
         total_active_load += total_bess_discharge
