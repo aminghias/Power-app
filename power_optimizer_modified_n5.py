@@ -371,6 +371,10 @@ class PowerOptimizer:
         
         # Allocate remaining load to sources
         self.allocate_active_power(available_sources, remaining_active_load)
+
+        
+        # self.apply_load_sharing(kvar_sources)
+        self.apply_load_sharing(available_sources)
         
         remaining_reactive_load = total_reactive_load
         kvar_sources = [s for s in self.sources]
@@ -386,7 +390,7 @@ class PowerOptimizer:
 
         
         # self.apply_load_sharing(kvar_sources)
-        self.apply_load_sharing(available_sources)
+        # self.apply_load_sharing(available_sources)
 
         if not self.grid_connected:
             self.handle_off_grid_operation(available_sources)
