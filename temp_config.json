@@ -6,7 +6,7 @@
             "name": "BESS",
             "capacity_kwh": 1000.0,
             "power_rating_kw": 500.0,
-            "current_soc": 18,
+            "current_soc": 26,
             "discharge_threshold": 50,
             "charge_threshold": 85,
             "power_input": 0.0,
@@ -44,25 +44,34 @@
             "device_id": null
         },
         {
-            "name": "Gas_1",
-            "production_cost": 15.0,
-            "carbon_emission": 0.5,
+            "name": "Diesel_3",
+            "production_cost": 20.0,
+            "carbon_emission": 0.8,
             "min_capacity": 100.0,
             "max_capacity": 500.0,
-            "reliability_score": 8.0,
+            "reliability_score": 7.0,
             "device_id": null
         },
         {
-            "name": "Gas_2",
-            "production_cost": 15.0,
-            "carbon_emission": 0.5,
+            "name": "Diesel_4",
+            "production_cost": 20.0,
+            "carbon_emission": 0.8,
             "min_capacity": 100.0,
             "max_capacity": 500.0,
-            "reliability_score": 8.0,
+            "reliability_score": 7.0,
             "device_id": null
         },
         {
-            "name": "Gas_3",
+            "name": "Diesel_5",
+            "production_cost": 20.0,
+            "carbon_emission": 0.8,
+            "min_capacity": 100.0,
+            "max_capacity": 500.0,
+            "reliability_score": 7.0,
+            "device_id": null
+        },
+        {
+            "name": "Gas",
             "production_cost": 15.0,
             "carbon_emission": 0.5,
             "min_capacity": 100.0,
