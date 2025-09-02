@@ -626,7 +626,7 @@ def create_temp_config(sources_config, bess_config):
     return config
 
 def main():
-    st.markdown('<h1 class="main-header">⚡ Power Optimization System</h1>', unsafe_allow_html=True)
+    st.markdown('<h1 class="main-header">⚡ APEX Adaptive Power Exchange - Power Optimization System</h1>', unsafe_allow_html=True)
     
     initialize_session_state()
     
