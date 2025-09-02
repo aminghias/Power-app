@@ -474,7 +474,9 @@ class PowerOptimizer:
         solar_sources = [s for s in sources if s.name.lower() == 'solar']
         non_renewable_sources = [s for s in sources if s.name.lower() not in ['solar', 'wind', 'bess']]
         
-        if solar_sources and total_load <= sum(s.max_capacity for s in solar_sources):
+        # if solar_sources and total_load <= sum(s.max_capacity for s in solar_sources):
+        # also add condition if self.optimized_discharge_power ==0
+        if solar_sources and total_load <= sum(s.max_capacity for s in solar_sources) and self.optimized_discharge_power == 0:
             print("Applying solar-first optimization strategy")
             
             for source in non_renewable_sources:
@@ -484,6 +486,7 @@ class PowerOptimizer:
                         source.optimized_active_load = min_allocation
                         remaining_load -= min_allocation
                         print(f"Minimum allocation to {source.name}: {min_allocation:.2f} kW")
+                # elif source.name.lower() == 'grid' and self.grid_connected or source.name.lower() == 'bess' :
                 elif source.name.lower() == 'grid' and self.grid_connected:
                     min_allocation = 10
                     source.optimized_active_load = min_allocation
