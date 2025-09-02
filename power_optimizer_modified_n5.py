@@ -4,8 +4,9 @@ import json
 import os
 import mysql.connector
 
+
 class BatteryEnergyStorageSystem:
-    """Battery Energy Storage System class"""
+    """Battery Energy Storage System class for managing BESS operations and optimization."""
     def __init__(self, name, capacity_kwh, power_rating_kw, charge_efficiency=0.95, 
                  discharge_efficiency=0.95, min_soc=20, max_soc=95, current_soc=50,
                  production_cost=2.0, carbon_emission=0.1, total_cost=None, reliability_score=9.0):
