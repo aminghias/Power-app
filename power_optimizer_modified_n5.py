@@ -565,39 +565,135 @@ class PowerOptimizer:
             if source_type not in source_groups:
                 source_groups[source_type] = []
             source_groups[source_type].append(source)
-        
+            
         for group_name, group_sources in source_groups.items():
             if len(group_sources) > 1:
                 total_group_load = sum(s.optimized_active_load for s in group_sources)
                 if total_group_load > 0:
                     # Equal load sharing for similar capacity units
                     if all(abs(s.max_capacity - group_sources[0].max_capacity) < 50 for s in group_sources):
-                        avg_load = total_group_load / len(group_sources)
-                        # min_c = min(s.min_capacity for s in group_sources)
-                        for s in group_sources:
-                            min_c = s.min_capacity
-                            if avg_load < min_c:
-                                # s.optimized_active_load = min_c
+                        # Try load sharing with all machines first
+                        active_sources = group_sources.copy()
+                        
+                        while len(active_sources) > 1:
+                            avg_load = total_group_load / len(active_sources)
+                            min_capacity_required = min(s.min_capacity for s in active_sources)
+                            
+                            if avg_load >= min_capacity_required:
+                                # All machines can handle the average load
+                                for s in group_sources:
+                                    if s in active_sources:
+                                        s.optimized_active_load = avg_load
+                                    else:
+                                        s.optimized_active_load = 0  # Shut off
                                 break
                             else:
-                                s.optimized_active_load = avg_load
-                #     # make new source_group and remove 1 source form source_groups
-                # new_source_group = group_sources[0]
-                # source_groups[group_name] = group_sources[1:]
-                # source_groups[new_source_group.name] = [new_source_group]
-                # new_total_group_load = sum(s.optimized_active_load for s in source_groups[new_source_group.name])
-                # print(f"New total group load for {new_source_group.name}: {new_total_group_load}")
-                # if new_total_group_load > 0:
-
-
+                                # Average load is below minimum capacity, shut off one machine
+                                # Find machine with highest minimum capacity to shut off first
+                                machine_to_shutdown = max(active_sources, key=lambda x: x.min_capacity)
+                                active_sources.remove(machine_to_shutdown)
+                                machine_to_shutdown.optimized_active_load = 0
+                        
+                        # If only one machine left, it takes all the load
+                        if len(active_sources) == 1:
+                            remaining_machine = active_sources[0]
+                            if total_group_load >= remaining_machine.min_capacity:
+                                remaining_machine.optimized_active_load = total_group_load
+                            else:
+                                # Even single machine can't handle the load, set to minimum
+                                remaining_machine.optimized_active_load = remaining_machine.min_capacity
+                            
+                            # Shut off all other machines
+                            for s in group_sources:
+                                if s != remaining_machine:
+                                    s.optimized_active_load = 0
+                                    
                     else:
                         # Proportional load sharing based on capacity
                         total_max = sum(s.max_capacity for s in group_sources)
+                        
+                        # First try proportional distribution
+                        temp_loads = {}
                         for s in group_sources:
                             proportion = s.max_capacity / total_max
-                            s.optimized_active_load = proportion * total_group_load
+                            temp_loads[s] = proportion * total_group_load
+                        
+                        # Check if any machine gets load below its minimum capacity
+                        machines_to_shutdown = []
+                        for s, load in temp_loads.items():
+                            if load < s.min_capacity:
+                                machines_to_shutdown.append(s)
+                        
+                        if machines_to_shutdown:
+                            # Shut down machines that can't meet minimum and redistribute
+                            active_sources = [s for s in group_sources if s not in machines_to_shutdown]
+                            
+                            if active_sources:
+                                # Recalculate proportional sharing among remaining machines
+                                remaining_total_max = sum(s.max_capacity for s in active_sources)
+                                for s in group_sources:
+                                    if s in active_sources:
+                                        proportion = s.max_capacity / remaining_total_max
+                                        new_load = proportion * total_group_load
+                                        # Ensure the new load meets minimum capacity
+                                        s.optimized_active_load = max(new_load, s.min_capacity)
+                                    else:
+                                        s.optimized_active_load = 0
+                            else:
+                                # All machines would be below minimum, keep one with lowest min_capacity
+                                best_machine = min(group_sources, key=lambda x: x.min_capacity)
+                                best_machine.optimized_active_load = max(total_group_load, best_machine.min_capacity)
+                                for s in group_sources:
+                                    if s != best_machine:
+                                        s.optimized_active_load = 0
+                        else:
+                            # All machines can handle their proportional load
+                            for s in group_sources:
+                                s.optimized_active_load = temp_loads[s]
+                                
+                print(f"Load sharing applied to {group_name} sources")
+    
+    # def apply_load_sharing(self, sources):
+    #     """Apply load sharing among similar sources"""
+    #     source_groups = {}
+    #     for source in sources:
+    #         source_type = source.name.split('_')[0] if '_' in source.name else source.name
+    #         if source_type not in source_groups:
+    #             source_groups[source_type] = []
+    #         source_groups[source_type].append(source)
+        
+    #     for group_name, group_sources in source_groups.items():
+    #         if len(group_sources) > 1:
+    #             total_group_load = sum(s.optimized_active_load for s in group_sources)
+    #             if total_group_load > 0:
+    #                 # Equal load sharing for similar capacity units
+    #                 if all(abs(s.max_capacity - group_sources[0].max_capacity) < 50 for s in group_sources):
+    #                     avg_load = total_group_load / len(group_sources)
+    #                     # min_c = min(s.min_capacity for s in group_sources)
+    #                     for s in group_sources:
+    #                         min_c = s.min_capacity
+    #                         if avg_load < min_c:
+    #                             # s.optimized_active_load = min_c
+    #                             break
+    #                         else:
+    #                             s.optimized_active_load = avg_load
+    #             #     # make new source_group and remove 1 source form source_groups
+    #             # new_source_group = group_sources[0]
+    #             # source_groups[group_name] = group_sources[1:]
+    #             # source_groups[new_source_group.name] = [new_source_group]
+    #             # new_total_group_load = sum(s.optimized_active_load for s in source_groups[new_source_group.name])
+    #             # print(f"New total group load for {new_source_group.name}: {new_total_group_load}")
+    #             # if new_total_group_load > 0:
+
+
+    #                 else:
+    #                     # Proportional load sharing based on capacity
+    #                     total_max = sum(s.max_capacity for s in group_sources)
+    #                     for s in group_sources:
+    #                         proportion = s.max_capacity / total_max
+    #                         s.optimized_active_load = proportion * total_group_load
                    
-                    print(f"Load sharing applied to {group_name} sources")
+    #                 print(f"Load sharing applied to {group_name} sources")
     
     def generate_results(self):
         """Generate comprehensive results including all sources and BESS"""
