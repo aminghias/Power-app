@@ -558,7 +558,15 @@ class PowerOptimizer:
                 source.optimized_reactive_load = allocation
 
             print(f"Reactive power allocation to {source.name}: {allocation:.2f} kVAR")
-        
+
+        if remaining_reactive_load > 0:
+            print(f"Unallocated reactive power: {remaining_reactive_load:.2f} kVAR")
+            # allocate this reactive load to grid
+            grid_source = next((s for s in sources if s.name.lower() == 'grid'), None)
+            if grid_source:
+                grid_source.optimized_reactive_load += remaining_reactive_load
+                print(f"Allocated {remaining_reactive_load:.2f} kVAR to grid")
+
         return remaining_reactive_load
     
     def apply_load_sharing(self, sources):
