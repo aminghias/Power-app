@@ -473,10 +473,11 @@ class PowerOptimizer:
 
         solar_sources = [s for s in sources if s.name.lower() == 'solar']
         non_renewable_sources = [s for s in sources if s.name.lower() not in ['solar', 'wind', 'bess']]
-        
+        bess_discharging = any(b.optimized_discharge_power > 0 for b in self.bess_systems)
         # if solar_sources and total_load <= sum(s.max_capacity for s in solar_sources):
         # also add condition if self.optimized_discharge_power ==0
-        if solar_sources and total_load <= sum(s.max_capacity for s in solar_sources) and self.optimized_discharge_power == 0:
+        # if solar_sources and total_load <= sum(s.max_capacity for s in solar_sources) and self.optimized_discharge_power == 0:
+        if solar_sources and total_load <= sum(s.max_capacity for s in solar_sources) and not bess_discharging:
             print("Applying solar-first optimization strategy")
             
             for source in non_renewable_sources:
