@@ -6,7 +6,8 @@ import os
 from datetime import datetime
 import plotly.express as px
 import plotly.graph_objects as go
-from power_optimizer_modified_n5 import PowerOptimizer, PowerSource, BatteryEnergyStorageSystem
+# from power_optimizer_modified_n5d import PowerOptimizer, PowerSource, BatteryEnergyStorageSystem
+from power_optimizer_modified_n5e import PowerOptimizer, PowerSource, BatteryEnergyStorageSystem
 
 # Page config
 st.set_page_config(
@@ -71,18 +72,17 @@ def initialize_session_state():
 def create_mock_optimizer():
     """Create a mock optimizer without database connection"""
     # Mock db config for standalone operation
-    host=
-    port=
-    user=
-    password=
-    database=
-    # db_config = {
-    #     'host': 'localhost',
-    #     'port': 3306,
-    #     'user': 'user',
-    #     'password': 'password',
-    #     'database': 'test'
-    # }
+    # host=
+    # port=
+    # user=
+    # password=
+    # database=
+    host='enerlytics.cm2egm0j3xhd.ap-south-1.rds.amazonaws.com'
+    port=3306
+    user='admin'
+    password='zN5mDVC9yG6gj2XnG6NY'
+    database='Enerlytics_DB'
+    # host=
     db_config = {
         'host': host,
         'port': port,
@@ -91,17 +91,6 @@ def create_mock_optimizer():
         'database': database
     }
     return PowerOptimizer(db_config)
-
-# def create_mock_optimizer():
-#     """Create a mock optimizer without database connection"""
-#     db_config = {
-#         'host': 'localhost',
-#         'port': 3306,
-#         'user': 'user',
-#         'password': 'password',
-#         'database': 'test'
-#     }
-#     return PowerOptimizer(db_config)
 
 def save_power_source_data(source_name, active_power, reactive_power):
     """Save power source data to CSV file"""
@@ -352,6 +341,12 @@ def main():
     with tab3:
         st.header("Power Optimization Engine")
         
+        st.subheader("Reliability Parameters")
+        max_peak_load = st.number_input("Max Peak Load (kW)", min_value=0.0, value=1000.0)
+        critical_load = st.number_input("Critical Load (kW)", min_value=0.0, value=500.0)
+        tripping_cost = st.number_input("Tripping Cost (PKR)", min_value=0.0, value=100000.0)
+        production_loss_hourly = st.number_input("Hourly Production Loss (PKR)", min_value=0.0, value=50000.0)
+        
         if st.button("🚀 Run Optimization", type="primary", use_container_width=True):
             with st.spinner("Running power optimization..."):
                 try:
@@ -367,10 +362,15 @@ def main():
                         ghi=ghi
                     )
                     
+                    optimizer.max_peak_load = max_peak_load
+                    optimizer.critical_load = critical_load
+                    optimizer.tripping_cost = tripping_cost
+                    optimizer.production_loss_hourly = production_loss_hourly
+                    
                     optimizer.initialize_sources(site_id="dummy")
+                    optimizer.optimize_power_allocation()  # This sets the optimized_mode
                     
-                    optimizer.optimize_power_allocation()
-                    
+                    # Use the existing generate_results method (which calls generate_combined_results internally)
                     results_df, total_current_cost, total_savings_hr = optimizer.generate_results()
                     recommendations = optimizer.generate_recommendations(results_df)
                     
@@ -427,26 +427,26 @@ def main():
             with col2:
                 st.markdown(f"""
                 <div class="metric-card">
-                    <h3>Optimized Cost</h3>
-                    <h2>PKR {total_row['OPTIMIZED COST/HR']:,.0f}</h2>
+                    <h3>Cost Opt Cost</h3>
+                    <h2>PKR {total_row['COST OPT COST/HR']:,.0f}</h2>
                 </div>
                 """, unsafe_allow_html=True)
             
             with col3:
-                savings = total_row['CURRENT COST/HR'] - total_row['OPTIMIZED COST/HR']
                 st.markdown(f"""
                 <div class="metric-card">
-                    <h3>Cost Savings</h3>
-                    <h2>PKR {savings:,.0f}</h2>
+                    <h3>Rel Opt Cost</h3>
+                    <h2>PKR {total_row['REL OPT COST/HR']:,.0f}</h2>
                 </div>
                 """, unsafe_allow_html=True)
             
             with col4:
-                savings_percent = (savings / total_row['CURRENT COST/HR']) * 100 if total_row['CURRENT COST/HR'] > 0 else 0
+                chosen_mode = st.session_state.optimizer.optimized_mode
+                savings = total_row['CURRENT COST/HR'] - total_row[f'{chosen_mode.upper()} OPT COST/HR']
                 st.markdown(f"""
                 <div class="metric-card">
-                    <h3>Savings %</h3>
-                    <h2>{savings_percent:.1f}%</h2>
+                    <h3>{chosen_mode.capitalize()} Savings</h3>
+                    <h2>PKR {savings:,.0f}</h2>
                 </div>
                 """, unsafe_allow_html=True)
             
@@ -459,7 +459,8 @@ def main():
             with col1:
                 fig_power = go.Figure(data=[
                     go.Bar(name='Current', x=chart_data['ENERGY SOURCE'], y=chart_data['CURRENT LOAD (kW)']),
-                    go.Bar(name='Optimized', x=chart_data['ENERGY SOURCE'], y=chart_data['OPTIMIZED LOAD (kW)'])
+                    go.Bar(name='Cost Opt', x=chart_data['ENERGY SOURCE'], y=chart_data['COST OPT LOAD (kW)']),
+                    go.Bar(name='Rel Opt', x=chart_data['ENERGY SOURCE'], y=chart_data['REL OPT LOAD (kW)'])
                 ])
                 fig_power.update_layout(title="Current vs Optimized Active Power", 
                                        xaxis_title="Sources", yaxis_title="Power (kW)")
@@ -468,7 +469,8 @@ def main():
             with col2:
                 fig_cost = go.Figure(data=[
                     go.Bar(name='Current Cost', x=chart_data['ENERGY SOURCE'], y=chart_data['CURRENT COST/HR']),
-                    go.Bar(name='Optimized Cost', x=chart_data['ENERGY SOURCE'], y=chart_data['OPTIMIZED COST/HR'])
+                    go.Bar(name='Cost Opt Cost', x=chart_data['ENERGY SOURCE'], y=chart_data['COST OPT COST/HR']),
+                    go.Bar(name='Rel Opt Cost', x=chart_data['ENERGY SOURCE'], y=chart_data['REL OPT COST/HR'])
                 ])
                 fig_cost.update_layout(title="Current vs Optimized Cost", 
                                       xaxis_title="Sources", yaxis_title="Cost (PKR/HR)")
@@ -481,21 +483,37 @@ def main():
                 fig_bess = go.Figure()
                 
                 for _, row in bess_data.iterrows():
-                    charge_power = row.get('OPTIMIZED CHARGE (kW)', 0)
-                    discharge_power = row.get('OPTIMIZED DISCHARGE (kW)', 0)
+                    cost_charge_kw = row.get('COST OPT CHARGE (kW)', 0)
+                    cost_discharge_kw = row.get('COST OPT DISCHARGE (kW)', 0)
+                    rel_charge_kw = row.get('REL OPT CHARGE (kW)', 0)
+                    rel_discharge_kw = row.get('REL OPT DISCHARGE (kW)', 0)
                     
                     fig_bess.add_trace(go.Bar(
-                        name=f"{row['ENERGY SOURCE']} Charge",
+                        name=f"{row['ENERGY SOURCE']} Cost Charge",
                         x=[row['ENERGY SOURCE']],
-                        y=[charge_power],
+                        y=[cost_charge_kw],
                         marker_color='green'
                     ))
                     
                     fig_bess.add_trace(go.Bar(
-                        name=f"{row['ENERGY SOURCE']} Discharge",
+                        name=f"{row['ENERGY SOURCE']} Cost Discharge",
                         x=[row['ENERGY SOURCE']],
-                        y=[-discharge_power],
+                        y=[-cost_discharge_kw],
                         marker_color='red'
+                    ))
+                    
+                    fig_bess.add_trace(go.Bar(
+                        name=f"{row['ENERGY SOURCE']} Rel Charge",
+                        x=[row['ENERGY SOURCE']],
+                        y=[rel_charge_kw],
+                        marker_color='lightgreen'
+                    ))
+                    
+                    fig_bess.add_trace(go.Bar(
+                        name=f"{row['ENERGY SOURCE']} Rel Discharge",
+                        x=[row['ENERGY SOURCE']],
+                        y=[-rel_discharge_kw],
+                        marker_color='pink'
                     ))
                 
                 fig_bess.update_layout(

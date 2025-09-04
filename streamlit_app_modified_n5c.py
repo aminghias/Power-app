@@ -6,7 +6,7 @@ import os
 from datetime import datetime
 import plotly.express as px
 import plotly.graph_objects as go
-from power_optimizer_modified_n5 import PowerOptimizer, PowerSource, BatteryEnergyStorageSystem
+from power_optimizer_modified_n5c import PowerOptimizer, PowerSource, BatteryEnergyStorageSystem
 
 # Page config
 st.set_page_config(
@@ -71,18 +71,16 @@ def initialize_session_state():
 def create_mock_optimizer():
     """Create a mock optimizer without database connection"""
     # Mock db config for standalone operation
-    host=
-    port=
-    user=
-    password=
-    database=
-    # db_config = {
-    #     'host': 'localhost',
-    #     'port': 3306,
-    #     'user': 'user',
-    #     'password': 'password',
-    #     'database': 'test'
-    # }
+    host='enerlytics.cm2egm0j3xhd.ap-south-1.rds.amazonaws.com'
+    port=3306
+    user='admin'
+    password='zN5mDVC9yG6gj2XnG6NY'
+    database='Enerlytics_DB'
+    # host=
+    # port=
+    # user=
+    # password=
+    # database=
     db_config = {
         'host': host,
         'port': port,
@@ -91,17 +89,6 @@ def create_mock_optimizer():
         'database': database
     }
     return PowerOptimizer(db_config)
-
-# def create_mock_optimizer():
-#     """Create a mock optimizer without database connection"""
-#     db_config = {
-#         'host': 'localhost',
-#         'port': 3306,
-#         'user': 'user',
-#         'password': 'password',
-#         'database': 'test'
-#     }
-#     return PowerOptimizer(db_config)
 
 def save_power_source_data(source_name, active_power, reactive_power):
     """Save power source data to CSV file"""
@@ -159,6 +146,12 @@ def main():
         'gas_pressure': gas_pressure,
         'ghi': ghi
     })
+    
+    st.sidebar.subheader("Reliability Parameters")
+    max_peak_load = st.sidebar.number_input("Max Peak Running Load (kW)", min_value=0.0, value=1000.0)
+    critical_load = st.sidebar.number_input("Total Critical Load (kW)", min_value=0.0, value=500.0)
+    tripping_cost = st.sidebar.number_input("Tripping Cost (PKR)", min_value=0.0, value=100000.0)
+    production_loss = st.sidebar.number_input("Production Loss Cost (PKR/hour)", min_value=0.0, value=50000.0)
     
     st.sidebar.subheader("Source Counts")
     num_solar = st.sidebar.number_input("Solar Systems", min_value=0, max_value=5, value=1)
@@ -366,13 +359,40 @@ def main():
                         gas_pressure=gas_pressure,
                         ghi=ghi
                     )
+                    optimizer.max_peak_load = max_peak_load
+                    optimizer.critical_load = critical_load
+                    optimizer.tripping_cost = tripping_cost
+                    optimizer.production_loss_hourly = production_loss
                     
                     optimizer.initialize_sources(site_id="dummy")
                     
-                    optimizer.optimize_power_allocation()
+                    # Run cost optimization
+                    optimizer.optimize_power_allocation_cost()
+                    results_df_cost, total_current_cost, total_savings_hr_cost = optimizer.generate_results()
                     
-                    results_df, total_current_cost, total_savings_hr = optimizer.generate_results()
+                    # Run reliability optimization
+                    optimizer.optimize_power_allocation_reliability()
+                    results_df_rel, _, total_savings_hr_rel = optimizer.generate_results()
+                    
+                    # Decide which to use
+                    cost_opt = results_df_cost[results_df_cost['ENERGY SOURCE'] == 'TOTAL']['OPTIMIZED COST/HR'].values[0]
+                    cost_rel = results_df_rel[results_df_rel['ENERGY SOURCE'] == 'TOTAL']['OPTIMIZED COST/HR'].values[0]
+                    cost_diff = cost_rel - cost_opt
+                    total_loss = optimizer.tripping_cost + optimizer.production_loss_hourly
+                    
+                    if total_loss > cost_diff:
+                        results_df = results_df_rel
+                        total_savings_hr = total_savings_hr_rel
+                        choice = "reliability"
+                        reason = "loss > extra cost"
+                    else:
+                        results_df = results_df_cost
+                        total_savings_hr = total_savings_hr_cost
+                        choice = "cost"
+                        reason = "loss <= extra cost"
+                    
                     recommendations = optimizer.generate_recommendations(results_df)
+                    recommendations += f"\n\nChosen mode: {choice} because {reason}"
                     
                     st.session_state.optimizer = optimizer
                     st.session_state.results = results_df
