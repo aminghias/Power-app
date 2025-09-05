@@ -26,34 +26,7 @@
             "device_id": null
         },
         {
-            "name": "Diesel_1",
-            "production_cost": 20.0,
-            "carbon_emission": 0.8,
-            "min_capacity": 100.0,
-            "max_capacity": 500.0,
-            "reliability_score": 7.0,
-            "device_id": null
-        },
-        {
-            "name": "Diesel_2",
-            "production_cost": 20.0,
-            "carbon_emission": 0.8,
-            "min_capacity": 100.0,
-            "max_capacity": 500.0,
-            "reliability_score": 7.0,
-            "device_id": null
-        },
-        {
-            "name": "Diesel_3",
-            "production_cost": 20.0,
-            "carbon_emission": 0.8,
-            "min_capacity": 100.0,
-            "max_capacity": 500.0,
-            "reliability_score": 7.0,
-            "device_id": null
-        },
-        {
-            "name": "Diesel_4",
+            "name": "Diesel",
             "production_cost": 20.0,
             "carbon_emission": 0.8,
             "min_capacity": 100.0,
@@ -81,15 +54,6 @@
         },
         {
             "name": "Gas_3",
-            "production_cost": 15.0,
-            "carbon_emission": 0.5,
-            "min_capacity": 100.0,
-            "max_capacity": 500.0,
-            "reliability_score": 8.0,
-            "device_id": null
-        },
-        {
-            "name": "Gas_4",
             "production_cost": 15.0,
             "carbon_emission": 0.5,
             "min_capacity": 100.0,

@@ -434,7 +434,9 @@ def main():
             
             total_row = display_df[display_df['ENERGY SOURCE'] == 'TOTAL'].squeeze()
             
-            col1, col2, col3, col4 = st.columns(4)
+            # col1, col2, col3, col4 = st.columns(4)
+
+            col1, col2c, col3c, col2r, col3r, col4c, col4r = st.columns(7)
             
             with col1:
                 st.markdown(f"""
@@ -444,29 +446,84 @@ def main():
                 </div>
                 """, unsafe_allow_html=True)
             
-            with col2:
+            # with col2:
+            #     st.markdown(f"""
+            #     <div class="metric-card">
+            #         <h3>Optimized Cost</h3>
+            #         <h2>PKR {total_row['OPTIMIZED COST/HR']:,.0f}</h2>
+            #     </div>
+            #     """, unsafe_allow_html=True)
+
+            with col2c:
                 st.markdown(f"""
                 <div class="metric-card">
                     <h3>Optimized Cost</h3>
-                    <h2>PKR {total_row['OPTIMIZED COST/HR']:,.0f}</h2>
+                    <h2>PKR {total_row['COST OPTIMIZED COST/HR']:,.0f}</h2>
                 </div>
                 """, unsafe_allow_html=True)
             
-            with col3:
-                savings = total_row['CURRENT COST/HR'] - total_row['OPTIMIZED COST/HR']
+            
+            # with col3:
+            #     savings = total_row['CURRENT COST/HR'] - total_row['OPTIMIZED COST/HR']
+            #     st.markdown(f"""
+            #     <div class="metric-card">
+            #         <h3>Cost Savings</h3>
+            #         <h2>PKR {savings:,.0f}</h2>
+            #     </div>
+            #     """, unsafe_allow_html=True)
+
+            with col3c:
+                savings_c = total_row['CURRENT COST/HR'] - total_row['COST OPTIMIZED COST/HR']
                 st.markdown(f"""
                 <div class="metric-card">
                     <h3>Cost Savings</h3>
-                    <h2>PKR {savings:,.0f}</h2>
+                    <h2>PKR {savings_c:,.0f}</h2>
                 </div>
                 """, unsafe_allow_html=True)
+
+            with col2r:
+                st.markdown(f"""
+                <div class="metric-card">
+                    <h3>Optimized Cost</h3>
+                    <h2>PKR {total_row['RELIABILITY OPTIMIZED COST/HR']:,.0f}</h2>
+                </div>
+                """, unsafe_allow_html=True)
+
+            with col3r:
+                savings_r = total_row['CURRENT COST/HR'] - total_row['RELIABILITY OPTIMIZED COST/HR']
+                st.markdown(f"""
+                <div class="metric-card">
+                    <h3>Cost Savings</h3>
+                    <h2>PKR {savings_r:,.0f}</h2>
+                </div>
+                """, unsafe_allow_html=True)
+
             
-            with col4:
-                savings_percent = (savings / total_row['CURRENT COST/HR']) * 100 if total_row['CURRENT COST/HR'] > 0 else 0
+            
+            # with col4:
+            #     savings_percent = (savings / total_row['CURRENT COST/HR']) * 100 if total_row['CURRENT COST/HR'] > 0 else 0
+            #     st.markdown(f"""
+            #     <div class="metric-card">
+            #         <h3>Savings %</h3>
+            #         <h2>{savings_percent:.1f}%</h2>
+            #     </div>
+            #     """, unsafe_allow_html=True)
+
+            with col4c:
+                savings_percent_c = (savings_c / total_row['CURRENT COST/HR']) * 100 if total_row['CURRENT COST/HR'] > 0 else 0
                 st.markdown(f"""
                 <div class="metric-card">
                     <h3>Savings %</h3>
-                    <h2>{savings_percent:.1f}%</h2>
+                    <h2>{savings_percent_c:.1f}%</h2>
+                </div>
+                """, unsafe_allow_html=True)
+
+            with col4r:
+                savings_percent_r = (savings_r / total_row['CURRENT COST/HR']) * 100 if total_row['CURRENT COST/HR'] > 0 else 0
+                st.markdown(f"""
+                <div class="metric-card">
+                    <h3>Savings %</h3>
+                    <h2>{savings_percent_r:.1f}%</h2>
                 </div>
                 """, unsafe_allow_html=True)
             
@@ -474,26 +531,66 @@ def main():
             
             chart_data = display_df[display_df['ENERGY SOURCE'] != 'TOTAL'].copy()
             
-            col1, col2 = st.columns(2)
+            # col1, col2 = st.columns(2)
             
-            with col1:
+            # with col1:
+            #     fig_power = go.Figure(data=[
+            #         go.Bar(name='Current', x=chart_data['ENERGY SOURCE'], y=chart_data['CURRENT LOAD (kW)']),
+            #         go.Bar(name='Optimized', x=chart_data['ENERGY SOURCE'], y=chart_data['OPTIMIZED LOAD (kW)'])
+            #     ])
+            #     fig_power.update_layout(title="Current vs Optimized Active Power", 
+            #                            xaxis_title="Sources", yaxis_title="Power (kW)")
+            #     st.plotly_chart(fig_power, use_container_width=True)
+            
+            # with col2:
+            #     fig_cost = go.Figure(data=[
+            #         go.Bar(name='Current Cost', x=chart_data['ENERGY SOURCE'], y=chart_data['CURRENT COST/HR']),
+            #         go.Bar(name='Optimized Cost', x=chart_data['ENERGY SOURCE'], y=chart_data['OPTIMIZED COST/HR'])
+            #     ])
+            #     fig_cost.update_layout(title="Current vs Optimized Cost", 
+            #                           xaxis_title="Sources", yaxis_title="Cost (PKR/HR)")
+            #     st.plotly_chart(fig_cost, use_container_width=True)
+
+            col1c, col2c = st.columns(2)
+            
+            with col1c:
                 fig_power = go.Figure(data=[
                     go.Bar(name='Current', x=chart_data['ENERGY SOURCE'], y=chart_data['CURRENT LOAD (kW)']),
-                    go.Bar(name='Optimized', x=chart_data['ENERGY SOURCE'], y=chart_data['OPTIMIZED LOAD (kW)'])
+                    go.Bar(name='Cost Optimized', x=chart_data['ENERGY SOURCE'], y=chart_data['COST OPTIMIZED LOAD (kW)'])
                 ])
                 fig_power.update_layout(title="Current vs Optimized Active Power", 
                                        xaxis_title="Sources", yaxis_title="Power (kW)")
                 st.plotly_chart(fig_power, use_container_width=True)
             
-            with col2:
+            with col2c:
                 fig_cost = go.Figure(data=[
                     go.Bar(name='Current Cost', x=chart_data['ENERGY SOURCE'], y=chart_data['CURRENT COST/HR']),
-                    go.Bar(name='Optimized Cost', x=chart_data['ENERGY SOURCE'], y=chart_data['OPTIMIZED COST/HR'])
+                    go.Bar(name='Cost Optimized Cost', x=chart_data['ENERGY SOURCE'], y=chart_data['COST OPTIMIZED COST/HR'])
                 ])
                 fig_cost.update_layout(title="Current vs Optimized Cost", 
                                       xaxis_title="Sources", yaxis_title="Cost (PKR/HR)")
                 st.plotly_chart(fig_cost, use_container_width=True)
-            
+
+            col1r, col2r = st.columns(2)
+
+            with col1r:
+                fig_power = go.Figure(data=[
+                    go.Bar(name='Current', x=chart_data['ENERGY SOURCE'], y=chart_data['CURRENT LOAD (kW)']),
+                    go.Bar(name='Cost Optimized', x=chart_data['ENERGY SOURCE'], y=chart_data['COST OPTIMIZED LOAD (kW)'])
+                ])
+                fig_power.update_layout(title="Current vs Optimized Active Power", 
+                                       xaxis_title="Sources", yaxis_title="Power (kW)")
+                st.plotly_chart(fig_power, use_container_width=True)
+
+            with col2r:
+                fig_cost = go.Figure(data=[
+                    go.Bar(name='Current Cost', x=chart_data['ENERGY SOURCE'], y=chart_data['CURRENT COST/HR']),
+                    go.Bar(name='Cost Optimized Cost', x=chart_data['ENERGY SOURCE'], y=chart_data['COST OPTIMIZED COST/HR'])
+                ])
+                fig_cost.update_layout(title="Current vs Optimized Cost", 
+                                      xaxis_title="Sources", yaxis_title="Cost (PKR/HR)")
+                st.plotly_chart(fig_cost, use_container_width=True)
+
             bess_data = chart_data[chart_data['ENERGY SOURCE'].str.contains('BESS', na=False)]
             if not bess_data.empty:
                 st.subheader("🔋 BESS Operation Analysis")
