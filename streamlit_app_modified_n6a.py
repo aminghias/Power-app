@@ -457,7 +457,7 @@ def main():
             with col2c:
                 st.markdown(f"""
                 <div class="metric-card">
-                    <h3>Optimized Cost</h3>
+                    <h3>Cost Optimized Cost</h3>
                     <h2>PKR {total_row['COST OPTIMIZED COST/HR']:,.0f}</h2>
                 </div>
                 """, unsafe_allow_html=True)
@@ -476,7 +476,7 @@ def main():
                 savings_c = total_row['CURRENT COST/HR'] - total_row['COST OPTIMIZED COST/HR']
                 st.markdown(f"""
                 <div class="metric-card">
-                    <h3>Cost Savings</h3>
+                    <h3>Cost Optimized Cost Savings</h3>
                     <h2>PKR {savings_c:,.0f}</h2>
                 </div>
                 """, unsafe_allow_html=True)
@@ -484,7 +484,7 @@ def main():
             with col2r:
                 st.markdown(f"""
                 <div class="metric-card">
-                    <h3>Optimized Cost</h3>
+                    <h3>Reliability Optimized Cost</h3>
                     <h2>PKR {total_row['RELIABILITY OPTIMIZED COST/HR']:,.0f}</h2>
                 </div>
                 """, unsafe_allow_html=True)
@@ -493,7 +493,7 @@ def main():
                 savings_r = total_row['CURRENT COST/HR'] - total_row['RELIABILITY OPTIMIZED COST/HR']
                 st.markdown(f"""
                 <div class="metric-card">
-                    <h3>Cost Savings</h3>
+                    <h3>Reliability Optimized Cost Savings</h3>
                     <h2>PKR {savings_r:,.0f}</h2>
                 </div>
                 """, unsafe_allow_html=True)
@@ -513,7 +513,7 @@ def main():
                 savings_percent_c = (savings_c / total_row['CURRENT COST/HR']) * 100 if total_row['CURRENT COST/HR'] > 0 else 0
                 st.markdown(f"""
                 <div class="metric-card">
-                    <h3>Savings %</h3>
+                    <h3>Cost Opetimized Savings %</h3>
                     <h2>{savings_percent_c:.1f}%</h2>
                 </div>
                 """, unsafe_allow_html=True)
@@ -522,7 +522,7 @@ def main():
                 savings_percent_r = (savings_r / total_row['CURRENT COST/HR']) * 100 if total_row['CURRENT COST/HR'] > 0 else 0
                 st.markdown(f"""
                 <div class="metric-card">
-                    <h3>Savings %</h3>
+                    <h3>Reliability Optimized Savings %</h3>
                     <h2>{savings_percent_r:.1f}%</h2>
                 </div>
                 """, unsafe_allow_html=True)
@@ -558,7 +558,7 @@ def main():
                     go.Bar(name='Current', x=chart_data['ENERGY SOURCE'], y=chart_data['CURRENT LOAD (kW)']),
                     go.Bar(name='Cost Optimized', x=chart_data['ENERGY SOURCE'], y=chart_data['COST OPTIMIZED LOAD (kW)'])
                 ])
-                fig_power.update_layout(title="Current vs Optimized Active Power", 
+                fig_power.update_layout(title="Current vs Cost Optimized Active Power", 
                                        xaxis_title="Sources", yaxis_title="Power (kW)")
                 st.plotly_chart(fig_power, use_container_width=True)
             
@@ -567,7 +567,7 @@ def main():
                     go.Bar(name='Current Cost', x=chart_data['ENERGY SOURCE'], y=chart_data['CURRENT COST/HR']),
                     go.Bar(name='Cost Optimized Cost', x=chart_data['ENERGY SOURCE'], y=chart_data['COST OPTIMIZED COST/HR'])
                 ])
-                fig_cost.update_layout(title="Current vs Optimized Cost", 
+                fig_cost.update_layout(title="Current vs Cost Optimized Cost", 
                                       xaxis_title="Sources", yaxis_title="Cost (PKR/HR)")
                 st.plotly_chart(fig_cost, use_container_width=True)
 
@@ -578,7 +578,7 @@ def main():
                     go.Bar(name='Current', x=chart_data['ENERGY SOURCE'], y=chart_data['CURRENT LOAD (kW)']),
                     go.Bar(name='Cost Optimized', x=chart_data['ENERGY SOURCE'], y=chart_data['COST OPTIMIZED LOAD (kW)'])
                 ])
-                fig_power.update_layout(title="Current vs Optimized Active Power", 
+                fig_power.update_layout(title="Current vs Reliability Optimized Active Power", 
                                        xaxis_title="Sources", yaxis_title="Power (kW)")
                 st.plotly_chart(fig_power, use_container_width=True)
 
@@ -587,7 +587,7 @@ def main():
                     go.Bar(name='Current Cost', x=chart_data['ENERGY SOURCE'], y=chart_data['CURRENT COST/HR']),
                     go.Bar(name='Cost Optimized Cost', x=chart_data['ENERGY SOURCE'], y=chart_data['COST OPTIMIZED COST/HR'])
                 ])
-                fig_cost.update_layout(title="Current vs Optimized Cost", 
+                fig_cost.update_layout(title="Current vs Reliability Optimized Cost", 
                                       xaxis_title="Sources", yaxis_title="Cost (PKR/HR)")
                 st.plotly_chart(fig_cost, use_container_width=True)
 
