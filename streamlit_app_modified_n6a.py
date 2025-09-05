@@ -375,8 +375,8 @@ def main():
                     results_df_rel, _, total_savings_hr_rel = optimizer.generate_results()
                     
                     # Decide which to use
-                    cost_opt = results_df_cost[results_df_cost['ENERGY SOURCE'] == 'TOTAL']['OPTIMIZED COST/HR'].values[0]
-                    cost_rel = results_df_rel[results_df_rel['ENERGY SOURCE'] == 'TOTAL']['OPTIMIZED COST/HR'].values[0]
+                    cost_opt = results_df_cost[results_df_cost['ENERGY SOURCE'] == 'TOTAL']['COST OPTIMIZED COST/HR'].values[0]
+                    cost_rel = results_df_rel[results_df_rel['ENERGY SOURCE'] == 'TOTAL']['RELIABILITY OPTIMIZED COST/HR'].values[0]
                     cost_diff = cost_rel - cost_opt
                     total_loss = optimizer.tripping_cost + optimizer.production_loss_hourly
                     

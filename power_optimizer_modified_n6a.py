@@ -125,8 +125,11 @@ class PowerSource:
         self.current_active_load = power_reading
         self.current_reactive_load = reactive_power_reading
         
-        self.optimized_active_load = 0
-        self.optimized_reactive_load = 0
+        self.optimized_cost_active_load = 0
+        self.optimized_cost_reactive_load = 0
+
+        self.optimized_rel_active_load = 0
+        self.optimized_rel_reactive_load = 0
         
         self.grid_feed_power = 0 if source_type == 'grid' else 0
         
@@ -440,8 +443,8 @@ class PowerOptimizer:
         
         # Reset optimized loads
         for source in available_sources:
-            source.optimized_active_load = 0
-            source.optimized_reactive_load = 0
+            source.optimized_cost_active_load = 0
+            source.optimized_cost_reactive_load = 0
         
         # Optimize BESS operation first
         self.optimize_bess_operation()
@@ -451,7 +454,7 @@ class PowerOptimizer:
         remaining_active_load = total_active_load - total_bess_optimized_discharge
         
         # Allocate remaining load to sources
-        self.allocate_active_power(available_sources, remaining_active_load, use_effective=False)
+        self.allocate_cost_active_power(available_sources, remaining_active_load, use_effective=False)
         
         self.apply_load_sharing_cost(available_sources, redundancy_level=0, use_effective=False)
         
@@ -461,7 +464,7 @@ class PowerOptimizer:
         for kvar in kvar_sources:
             print(f" - {kvar.name}")
 
-        self.allocate_reactive_power(kvar_sources, total_reactive_load)
+        self.allocate_cost_reactive_power(kvar_sources, total_reactive_load)
         
         if not self.grid_connected:
             self.handle_off_grid_operation(available_sources)
@@ -470,8 +473,8 @@ class PowerOptimizer:
         """Reliability-optimized power allocation"""
         # Reset optimized
         for source in self.sources:
-            source.optimized_active_load = 0
-            source.optimized_reactive_load = 0
+            source.optimized_rel_active_load = 0
+            source.optimized_rel_reactive_load = 0
             source.effective_max = source.max_capacity
             source.grid_feed_power = 0
         
@@ -545,18 +548,18 @@ class PowerOptimizer:
         remaining_active_load = total_active_load - total_bess_optimized_discharge
         
         # Allocate
-        self.allocate_active_power(available_sources, remaining_active_load, use_effective=True)
+        self.allocate_rel_active_power(available_sources, remaining_active_load, use_effective=True)
         
         self.apply_load_sharing_rel(available_sources, redundancy_level=self.redundancy_level, use_effective=True)
         
         kvar_sources = [s for s in self.sources]
         kvar_sources.extend(self.bess_systems)
         
-        self.allocate_reactive_power(kvar_sources, total_reactive_load)
+        self.allocate_rel_reactive_power(kvar_sources, total_reactive_load)
         
         # Handle excess if any
         remaining_active_load = total_active_load - sum(b.optimized_discharge_power for b in self.bess_systems)
-        total_allocated = sum(s.optimized_active_load for s in self.sources)
+        total_allocated = sum(s.optimized_rel_active_load for s in self.sources)
         excess = total_allocated - remaining_active_load
         if excess > 0:
             # Try to charge BESS with excess
@@ -624,12 +627,43 @@ class PowerOptimizer:
                 bess.mode = 'standby'
                 print(f"BESS {bess.name} in standby mode")
 
-    def handle_off_grid_operation(self, sources):
+    # def handle_off_grid_operation(self, sources):
+    #     print("\nOff-grid operation mode activated")
+        
+    #     sources = [s for s in sources if s.source_type != 'grid']
+        
+    #     total_generation = sum(s.optimized_cost_active_load for s in sources)
+    #     total_demand = self.total_load_demand
+        
+    #     for bess in self.bess_systems:
+    #         if bess.mode == 'discharging':
+    #             total_generation += bess.optimized_discharge_power
+        
+    #     if total_generation < total_demand:
+    #         deficit = total_demand - total_generation
+    #         print(f"Generation deficit in off-grid mode: {deficit:.2f} kW")
+            
+    #         for source in sources:
+    #             if source.optimized_cost_active_load < source.effective_max:
+    #                 additional_capacity = min(deficit, 
+    #                                           source.effective_max - source.optimized_cost_active_load)
+    #                 source.optimized_cost_active_load += additional_capacity
+    #                 deficit -= additional_capacity
+    #                 print(f"Increased {source.name} output by {additional_capacity:.2f} kW")
+                    
+    #                 if deficit <= 0:
+    #                     break
+            
+    #         if deficit > 0:
+    #             print(f"Load shedding required: {deficit:.2f} kW")
+
+
+    def handle_off_grid_operation_cost(self, sources):
         print("\nOff-grid operation mode activated")
         
         sources = [s for s in sources if s.source_type != 'grid']
         
-        total_generation = sum(s.optimized_active_load for s in sources)
+        total_generation = sum(s.optimized_cost_active_load for s in sources)
         total_demand = self.total_load_demand
         
         for bess in self.bess_systems:
@@ -641,10 +675,49 @@ class PowerOptimizer:
             print(f"Generation deficit in off-grid mode: {deficit:.2f} kW")
             
             for source in sources:
-                if source.optimized_active_load < source.effective_max:
+                if source.optimized_cost_active_load < source.effective_max:
                     additional_capacity = min(deficit, 
-                                              source.effective_max - source.optimized_active_load)
-                    source.optimized_active_load += additional_capacity
+                                              source.effective_max - source.optimized_cost_active_load)
+                    source.optimized_cost_active_load += additional_capacity
+                    deficit -= additional_capacity
+                    print(f"Increased {source.name} output by {additional_capacity:.2f} kW")
+                    
+                    if deficit <= 0:
+                        break
+            
+            if deficit > 0:
+                print(f"Load shedding required: {deficit:.2f} kW")
+                for source in sources:
+                    if source.optimized_cost_active_load > 0:
+                        reduction = min(deficit, source.optimized_cost_active_load)
+                        source.optimized_cost_active_load -= reduction
+                        deficit -= reduction
+                        print(f"Decreased {source.name} output by {reduction:.2f} kW")
+                        
+                        if deficit <= 0:
+                            break
+
+    def handle_off_grid_operation_rel(self, sources):
+        print("\nOff-grid operation mode activated")
+        
+        sources = [s for s in sources if s.source_type != 'grid']
+        
+        total_generation = sum(s.optimized_rel_active_load for s in sources)
+        total_demand = self.total_load_demand
+        
+        for bess in self.bess_systems:
+            if bess.mode == 'discharging':
+                total_generation += bess.optimized_discharge_power
+        
+        if total_generation < total_demand:
+            deficit = total_demand - total_generation
+            print(f"Generation deficit in off-grid mode: {deficit:.2f} kW")
+            
+            for source in sources:
+                if source.optimized_rel_active_load < source.effective_max:
+                    additional_capacity = min(deficit, 
+                                              source.effective_max - source.optimized_rel_active_load)
+                    source.optimized_rel_active_load += additional_capacity
                     deficit -= additional_capacity
                     print(f"Increased {source.name} output by {additional_capacity:.2f} kW")
                     
@@ -654,7 +727,62 @@ class PowerOptimizer:
             if deficit > 0:
                 print(f"Load shedding required: {deficit:.2f} kW")
 
-    def allocate_active_power(self, sources, total_load, use_effective=False):
+    # def allocate_active_power(self, sources, total_load, use_effective=False):
+    #     remaining_load = total_load
+    #     print('The sources are:')
+    #     for source in sources:
+    #         print(f" - {source.name} (Max: {source.max_capacity} kW, Min: {source.min_capacity} kW)")
+    #     print(f"Total load: {total_load} kW")
+    #     print(f"Remaining load: {remaining_load} kW")
+
+    #     solar_sources = [s for s in sources if s.name.lower().startswith('solar')]
+    #     non_renewable_sources = [s for s in sources if not s.name.lower().startswith('solar') and not s.name.lower().startswith('wind') and not s.name.lower().startswith('bess')]
+    #     bess_discharging = any(b.optimized_discharge_power > 0 for b in self.bess_systems)
+    #     if solar_sources and total_load <= sum(s.effective_max if use_effective else s.max_capacity for s in solar_sources) and not bess_discharging:
+    #         print("Applying solar-first optimization strategy")
+            
+    #         for source in non_renewable_sources:
+    #             if source.name.lower() != 'grid' and source.available:
+    #                 if remaining_load > source.min_capacity:
+    #                     min_allocation = source.min_capacity
+    #                     source.optimized_cost_active_load = min_allocation
+    #                     remaining_load -= min_allocation
+    #                     print(f"Minimum allocation to {source.name}: {min_allocation:.2f} kW")
+    #                     break
+    #             elif source.name.lower() == 'grid' and self.grid_connected:
+    #                 min_allocation = 10
+    #                 source.optimized_cost_active_load = min_allocation
+    #                 remaining_load -= min_allocation
+    #                 print(f"Minimum allocation to {source.name}: {min_allocation:.2f} kW")
+            
+    #         for source in solar_sources:
+    #             if remaining_load > 0:
+    #                 max_cap = source.effective_max if use_effective else source.max_capacity
+    #                 allocation = min(remaining_load, max_cap)
+    #                 source.optimized_cost_active_load = allocation
+    #                 remaining_load -= allocation
+    #                 print(f"Solar allocation to {source.name}: {allocation:.2f} kW")
+        
+    #     else:
+    #         for source in sources:
+    #             if remaining_load <= 0:
+    #                 break
+                
+    #             max_cap = source.effective_max if use_effective else source.max_capacity
+    #             max_possible = min(max_cap, remaining_load)
+    #             min_required = source.min_capacity
+                
+    #             if max_possible >= min_required:
+    #                 allocation = max_possible
+    #                 source.optimized_cost_active_load = allocation
+    #                 remaining_load -= allocation
+    #                 print(f"Optimized allocation to {source.name}: {allocation:.2f} kW")
+    #             else:
+    #                 source.optimized_cost_active_load = 0
+
+    #     return remaining_load
+
+    def allocate_cost_active_power(self, sources, total_load, use_effective=False):
         remaining_load = total_load
         print('The sources are:')
         for source in sources:
@@ -672,13 +800,13 @@ class PowerOptimizer:
                 if source.name.lower() != 'grid' and source.available:
                     if remaining_load > source.min_capacity:
                         min_allocation = source.min_capacity
-                        source.optimized_active_load = min_allocation
+                        source.optimized_cost_active_load = min_allocation
                         remaining_load -= min_allocation
                         print(f"Minimum allocation to {source.name}: {min_allocation:.2f} kW")
                         break
                 elif source.name.lower() == 'grid' and self.grid_connected:
                     min_allocation = 10
-                    source.optimized_active_load = min_allocation
+                    source.optimized_cost_active_load = min_allocation
                     remaining_load -= min_allocation
                     print(f"Minimum allocation to {source.name}: {min_allocation:.2f} kW")
             
@@ -686,7 +814,7 @@ class PowerOptimizer:
                 if remaining_load > 0:
                     max_cap = source.effective_max if use_effective else source.max_capacity
                     allocation = min(remaining_load, max_cap)
-                    source.optimized_active_load = allocation
+                    source.optimized_cost_active_load = allocation
                     remaining_load -= allocation
                     print(f"Solar allocation to {source.name}: {allocation:.2f} kW")
         
@@ -701,15 +829,105 @@ class PowerOptimizer:
                 
                 if max_possible >= min_required:
                     allocation = max_possible
-                    source.optimized_active_load = allocation
+                    source.optimized_cost_active_load = allocation
                     remaining_load -= allocation
                     print(f"Optimized allocation to {source.name}: {allocation:.2f} kW")
                 else:
-                    source.optimized_active_load = 0
+                    source.optimized_cost_active_load = 0
 
         return remaining_load
     
-    def allocate_reactive_power(self, sources, total_reactive_load):
+    def allocate_rel_active_power(self, sources, total_load, use_effective=False):
+        remaining_load = total_load
+        print('The sources are:')
+        for source in sources:
+            print(f" - {source.name} (Max: {source.max_capacity} kW, Min: {source.min_capacity} kW)")
+        print(f"Total load: {total_load} kW")
+        print(f"Remaining load: {remaining_load} kW")
+
+        solar_sources = [s for s in sources if s.name.lower().startswith('solar')]
+        non_renewable_sources = [s for s in sources if not s.name.lower().startswith('solar') and not s.name.lower().startswith('wind') and not s.name.lower().startswith('bess')]
+        bess_discharging = any(b.optimized_discharge_power > 0 for b in self.bess_systems)
+        if solar_sources and total_load <= sum(s.effective_max if use_effective else s.max_capacity for s in solar_sources) and not bess_discharging:
+            print("Applying solar-first optimization strategy")
+            
+            for source in non_renewable_sources:
+                if source.name.lower() != 'grid' and source.available:
+                    if remaining_load > source.min_capacity:
+                        min_allocation = source.min_capacity
+                        source.optimized_rel_active_load = min_allocation
+                        remaining_load -= min_allocation
+                        print(f"Minimum allocation to {source.name}: {min_allocation:.2f} kW")
+                        break
+                elif source.name.lower() == 'grid' and self.grid_connected:
+                    min_allocation = 10
+                    source.optimized_rel_active_load = min_allocation
+                    remaining_load -= min_allocation
+                    print(f"Minimum allocation to {source.name}: {min_allocation:.2f} kW")
+            
+            for source in solar_sources:
+                if remaining_load > 0:
+                    max_cap = source.effective_max if use_effective else source.max_capacity
+                    allocation = min(remaining_load, max_cap) 
+                    source.optimized_rel_active_load = allocation
+                    remaining_load -= allocation
+                    print(f"Solar allocation to {source.name}: {allocation:.2f} kW")
+        
+        else:
+            for source in sources:
+                if remaining_load <= 0:
+                    break
+                
+                max_cap = source.effective_max if use_effective else source.max_capacity
+                max_possible = min(max_cap, remaining_load)
+                min_required = source.min_capacity
+                
+                if max_possible >= min_required:
+                    allocation = max_possible
+                    source.optimized_rel_active_load = allocation
+                    remaining_load -= allocation
+                    print(f"Optimized allocation to {source.name}: {allocation:.2f} kW")
+                else:
+                    source.optimized_rel_active_load = 0
+
+        return remaining_load
+    
+    # def allocate_reactive_power(self, sources, total_reactive_load):
+    #     """Allocate reactive power among sources"""
+    #     remaining_reactive_load = total_reactive_load
+        
+    #     for source in sources:
+    #         if remaining_reactive_load <= 0:
+    #             break
+
+    #         if hasattr(source, 'power_rating_kw'):  # BESS
+    #             max_reactive = source.power_rating_kw * 0.8
+    #             allocation = min(max_reactive, remaining_reactive_load)
+    #             source.optimized_cost_reactive_load = allocation
+    #             remaining_reactive_load -= allocation
+            
+    #         elif source.name.lower() != 'solar':
+    #             max_reactive = source.optimized_cost_active_load * 0.6
+    #             allocation = min(max_reactive, remaining_reactive_load)
+    #             source.optimized_cost_reactive_load = allocation
+    #             remaining_reactive_load -= allocation
+
+    #         else:
+    #             allocation = 0
+    #             source.optimized_cost_reactive_load = allocation
+
+    #         print(f"Reactive power allocation to {source.name}: {allocation:.2f} kVAR")
+
+    #     if remaining_reactive_load > 0:
+    #         print(f"Unallocated reactive power: {remaining_reactive_load:.2f} kVAR")
+    #         grid_source = next((s for s in sources if hasattr(s, 'name') and s.name.lower() == 'grid'), None)
+    #         if grid_source:
+    #             grid_source.optimized_cost_reactive_load += remaining_reactive_load
+    #             print(f"Allocated {remaining_reactive_load:.2f} kVAR to grid")
+
+    #     return remaining_reactive_load
+
+    def allocate_cost_reactive_power(self, sources, total_reactive_load):
         """Allocate reactive power among sources"""
         remaining_reactive_load = total_reactive_load
         
@@ -720,18 +938,18 @@ class PowerOptimizer:
             if hasattr(source, 'power_rating_kw'):  # BESS
                 max_reactive = source.power_rating_kw * 0.8
                 allocation = min(max_reactive, remaining_reactive_load)
-                source.optimized_reactive_load = allocation
+                source.optimized_cost_reactive_load = allocation
                 remaining_reactive_load -= allocation
             
             elif source.name.lower() != 'solar':
-                max_reactive = source.optimized_active_load * 0.6
+                max_reactive = source.optimized_cost_active_load * 0.6
                 allocation = min(max_reactive, remaining_reactive_load)
-                source.optimized_reactive_load = allocation
+                source.optimized_cost_reactive_load = allocation
                 remaining_reactive_load -= allocation
 
             else:
                 allocation = 0
-                source.optimized_reactive_load = allocation
+                source.optimized_cost_reactive_load = allocation
 
             print(f"Reactive power allocation to {source.name}: {allocation:.2f} kVAR")
 
@@ -739,7 +957,42 @@ class PowerOptimizer:
             print(f"Unallocated reactive power: {remaining_reactive_load:.2f} kVAR")
             grid_source = next((s for s in sources if hasattr(s, 'name') and s.name.lower() == 'grid'), None)
             if grid_source:
-                grid_source.optimized_reactive_load += remaining_reactive_load
+                grid_source.optimized_cost_reactive_load += remaining_reactive_load
+                print(f"Allocated {remaining_reactive_load:.2f} kVAR to grid")
+
+        return remaining_reactive_load
+    
+    def allocate_rel_reactive_power(self, sources, total_reactive_load):
+        """Allocate reactive power among sources"""
+        remaining_reactive_load = total_reactive_load
+        
+        for source in sources:
+            if remaining_reactive_load <= 0:
+                break
+
+            if hasattr(source, 'power_rating_kw'):  # BESS
+                max_reactive = source.power_rating_kw * 0.8
+                allocation = min(max_reactive, remaining_reactive_load)
+                source.optimized_rel_reactive_load = allocation
+                remaining_reactive_load -= allocation
+            
+            elif source.name.lower() != 'solar':
+                max_reactive = source.optimized_rel_active_load * 0.6
+                allocation = min(max_reactive, remaining_reactive_load)
+                source.optimized_rel_reactive_load = allocation
+                remaining_reactive_load -= allocation
+
+            else:
+                allocation = 0
+                source.optimized_rel_reactive_load = allocation
+
+            print(f"Reactive power allocation to {source.name}: {allocation:.2f} kVAR")
+
+        if remaining_reactive_load > 0:
+            print(f"Unallocated reactive power: {remaining_reactive_load:.2f} kVAR")
+            grid_source = next((s for s in sources if hasattr(s, 'name') and s.name.lower() == 'grid'), None)
+            if grid_source:
+                grid_source.optimized_rel_reactive_load += remaining_reactive_load
                 print(f"Allocated {remaining_reactive_load:.2f} kVAR to grid")
 
         return remaining_reactive_load
@@ -755,7 +1008,7 @@ class PowerOptimizer:
             
         for group_name, group_sources in source_groups.items():
             if len(group_sources) > 1:
-                total_group_load = sum(s.optimized_active_load for s in group_sources)
+                total_group_load = sum(s.optimized_rel_active_load for s in group_sources)
                 if total_group_load > 0:
                     # Equal load sharing for similar capacity units
                     if all(abs(s.max_capacity - group_sources[0].max_capacity) < 50 for s in group_sources):
@@ -768,27 +1021,27 @@ class PowerOptimizer:
                             if avg_load >= min_c:
                                 for s in group_sources:
                                     if s in active_sources:
-                                        # s.optimized_active_load = avg_load
-                                        s.optimized_active_load = avg_load*0.9 + s.min_capacity*0.1
+                                        # s.optimized_rel_active_load = avg_load
+                                        s.optimized_rel_active_load = avg_load*0.9 + s.min_capacity*0.1
                                     else:
-                                        s.optimized_active_load = 0
+                                        s.optimized_rel_active_load = 0
                                 break
                             else:
                                 machine_to_shutdown = max(active_sources, key=lambda x: x.min_capacity)
                                 active_sources.remove(machine_to_shutdown)
-                                machine_to_shutdown.optimized_active_load = 0
+                                machine_to_shutdown.optimized_rel_active_load = 0
                         
                         if len(active_sources) == 1:
                             remaining_machine = active_sources[0]
                             if total_group_load >= remaining_machine.min_capacity:
-                                # remaining_machine.optimized_active_load = total_group_load
-                                remaining_machine.optimized_active_load = total_group_load*0.9 + remaining_machine.min_capacity*0.1
+                                # remaining_machine.optimized_rel_active_load = total_group_load
+                                remaining_machine.optimized_rel_active_load = total_group_load*0.9 + remaining_machine.min_capacity*0.1
                             else:
-                                remaining_machine.optimized_active_load = remaining_machine.min_capacity
+                                remaining_machine.optimized_rel_active_load = remaining_machine.min_capacity
                             
                             for s in group_sources:
                                 if s != remaining_machine:
-                                    s.optimized_active_load = 0
+                                    s.optimized_rel_active_load = 0
                                     
                     else:
                         # Proportional load sharing
@@ -813,34 +1066,34 @@ class PowerOptimizer:
                                     if s in active_sources:
                                         proportion = (s.effective_max if use_effective else s.max_capacity) / remaining_total_max
                                         new_load = proportion * total_group_load
-                                        # s.optimized_active_load = max(new_load, s.min_capacity)
-                                        s.optimized_active_load = max(new_load, s.min_capacity)*0.9 + s.min_capacity*0.1
+                                        # s.optimized_rel_active_load = max(new_load, s.min_capacity)
+                                        s.optimized_rel_active_load = max(new_load, s.min_capacity)*0.9 + s.min_capacity*0.1
                                     else:
-                                        s.optimized_active_load = 0
+                                        s.optimized_rel_active_load = 0
                             else:
                                 best_machine = min(group_sources, key=lambda x: x.min_capacity)
-                                # best_machine.optimized_active_load = max(total_group_load, best_machine.min_capacity)
-                                best_machine.optimized_active_load = max(total_group_load, best_machine.min_capacity)*0.9 + best_machine.min_capacity*0.1
+                                # best_machine.optimized_rel_active_load = max(total_group_load, best_machine.min_capacity)
+                                best_machine.optimized_rel_active_load = max(total_group_load, best_machine.min_capacity)*0.9 + best_machine.min_capacity*0.1
                                 for s in group_sources:
                                     if s != best_machine:
-                                        s.optimized_active_load = 0
+                                        s.optimized_rel_active_load = 0
                         else:
                             for s in group_sources:
-                                s.optimized_active_load = temp_loads[s]
+                                s.optimized_rel_active_load = temp_loads[s]
                     
                     # Add redundancy if required
-                    active_sources = [s for s in group_sources if s.optimized_active_load > 0]
+                    active_sources = [s for s in group_sources if s.optimized_rel_active_load > 0]
                     number_needed = len(active_sources)
                     desired = number_needed + redundancy_level
                     if desired > len(group_sources):
                         desired = len(group_sources)
                     additional = desired - number_needed
                     if additional > 0:
-                        shut_off = [s for s in group_sources if s.optimized_active_load == 0]
+                        shut_off = [s for s in group_sources if s.optimized_rel_active_load == 0]
                         additional = min(additional, len(shut_off))
                         for i in range(additional):
                             extra = shut_off[i]
-                            extra.optimized_active_load = extra.min_capacity
+                            extra.optimized_rel_active_load = extra.min_capacity
                         print(f"Added {additional} redundant units for {group_name} at min capacity")
                 
                 print(f"Load sharing applied to {group_name} sources")
@@ -856,7 +1109,7 @@ class PowerOptimizer:
             
         for group_name, group_sources in source_groups.items():
             if len(group_sources) > 1:
-                total_group_load = sum(s.optimized_active_load for s in group_sources)
+                total_group_load = sum(s.optimized_cost_active_load for s in group_sources)
                 if total_group_load > 0:
                     # Equal load sharing for similar capacity units
                     if all(abs(s.max_capacity - group_sources[0].max_capacity) < 50 for s in group_sources):
@@ -869,25 +1122,25 @@ class PowerOptimizer:
                             if avg_load >= min_c:
                                 for s in group_sources:
                                     if s in active_sources:
-                                        s.optimized_active_load = avg_load
+                                        s.optimized_cost_active_load = avg_load
                                     else:
-                                        s.optimized_active_load = 0
+                                        s.optimized_cost_active_load = 0
                                 break
                             else:
                                 machine_to_shutdown = max(active_sources, key=lambda x: x.min_capacity)
                                 active_sources.remove(machine_to_shutdown)
-                                machine_to_shutdown.optimized_active_load = 0
+                                machine_to_shutdown.optimized_cost_active_load = 0
                         
                         if len(active_sources) == 1:
                             remaining_machine = active_sources[0]
                             if total_group_load >= remaining_machine.min_capacity:
-                                remaining_machine.optimized_active_load = total_group_load
+                                remaining_machine.optimized_cost_active_load = total_group_load
                             else:
-                                remaining_machine.optimized_active_load = remaining_machine.min_capacity
+                                remaining_machine.optimized_cost_active_load = remaining_machine.min_capacity
                             
                             for s in group_sources:
                                 if s != remaining_machine:
-                                    s.optimized_active_load = 0
+                                    s.optimized_cost_active_load = 0
                                     
                     else:
                         # Proportional load sharing
@@ -912,32 +1165,32 @@ class PowerOptimizer:
                                     if s in active_sources:
                                         proportion = (s.effective_max if use_effective else s.max_capacity) / remaining_total_max
                                         new_load = proportion * total_group_load
-                                        s.optimized_active_load = max(new_load, s.min_capacity)
+                                        s.optimized_cost_active_load = max(new_load, s.min_capacity)
                                     else:
-                                        s.optimized_active_load = 0
+                                        s.optimized_cost_active_load = 0
                             else:
                                 best_machine = min(group_sources, key=lambda x: x.min_capacity)
-                                best_machine.optimized_active_load = max(total_group_load, best_machine.min_capacity)
+                                best_machine.optimized_cost_active_load = max(total_group_load, best_machine.min_capacity)
                                 for s in group_sources:
                                     if s != best_machine:
-                                        s.optimized_active_load = 0
+                                        s.optimized_cost_active_load = 0
                         else:
                             for s in group_sources:
-                                s.optimized_active_load = temp_loads[s]
+                                s.optimized_cost_active_load = temp_loads[s]
                     
                     # Add redundancy if required
-                    active_sources = [s for s in group_sources if s.optimized_active_load > 0]
+                    active_sources = [s for s in group_sources if s.optimized_cost_active_load > 0]
                     number_needed = len(active_sources)
                     desired = number_needed + redundancy_level
                     if desired > len(group_sources):
                         desired = len(group_sources)
                     additional = desired - number_needed
                     if additional > 0:
-                        shut_off = [s for s in group_sources if s.optimized_active_load == 0]
+                        shut_off = [s for s in group_sources if s.optimized_cost_active_load == 0]
                         additional = min(additional, len(shut_off))
                         for i in range(additional):
                             extra = shut_off[i]
-                            extra.optimized_active_load = extra.min_capacity
+                            extra.optimized_cost_active_load = extra.min_capacity
                         print(f"Added {additional} redundant units for {group_name} at min capacity")
                 
                 print(f"Load sharing applied to {group_name} sources")
@@ -946,45 +1199,59 @@ class PowerOptimizer:
         """Generate comprehensive results including all sources and BESS"""
         results = []
         total_current_load = 0
-        total_optimized_load = 0
+        total_cost_optimized_load = 0
         total_current_cost = 0
-        total_optimized_cost = 0
+        total_cost_optimized_cost = 0
         total_current_kvar = 0
-        total_optimized_kvar = 0
+        total_cost_optimized_kvar = 0
         total_grid_feed = 0
+        total_rel_optimized_kvar = 0
+        total_rel_optimized_load = 0
+        total_rel_optimized_cost = 0
 
         # Process all power sources
         for source in self.sources:
             current_load = source.current_active_load
-            optimized_load = source.optimized_active_load
+            cost_optimized_load = source.optimized_cost_active_load
+            rel_optimized_load = source.optimized_rel_active_load
             cost_per_kwh = source.total_cost
 
             current_kvar = source.current_reactive_load
-            optimized_kvar = source.optimized_reactive_load
+            cost_optimized_kvar = source.optimized_cost_reactive_load
+            rel_optimized_kvar = source.optimized_rel_reactive_load
 
             current_cost_hr = current_load * cost_per_kwh
             
             if source.name.lower() == 'grid':
-                effective_optimized = optimized_load - source.grid_feed_power
-                optimized_cost_hr = max(0, effective_optimized) * cost_per_kwh
+                cost_effective_optimized = cost_optimized_load - source.grid_feed_power
+                rel_effective_optimized = rel_optimized_load - source.grid_feed_power
+                cost_optimized_cost_hr = max(0, cost_effective_optimized) * cost_per_kwh
+                rel_optimized_cost_hr = max(0, rel_effective_optimized) * cost_per_kwh
                 total_grid_feed += source.grid_feed_power
             else:
-                effective_optimized = optimized_load
-                optimized_cost_hr = optimized_load * cost_per_kwh
+                cost_effective_optimized = cost_optimized_load
+                rel_effective_optimized = rel_optimized_load
+                cost_optimized_cost_hr = cost_optimized_load * cost_per_kwh
+                rel_optimized_cost_hr = rel_optimized_load * cost_per_kwh
 
             row = {
                 'ENERGY SOURCE': source.name,
                 'CURRENT LOAD (kW)': round(current_load, 2),
-                'OPTIMIZED LOAD (kW)': round(effective_optimized, 2),
+                'COST OPTIMIZED LOAD (kW)': round(cost_effective_optimized, 2),
+                'RELIABILITY OPTIMIZED LOAD (kW)': round(rel_effective_optimized, 2),
                 'CURRENT KVAR (kVAR)': round(current_kvar, 2),
-                'OPTIMIZED KVAR (kVAR)': round(optimized_kvar, 2),
+                'COST OPTIMIZED KVAR (kVAR)': round(cost_optimized_kvar, 2),
+                'RELIABILITY OPTIMIZED KVAR (kVAR)': round(rel_optimized_kvar, 2),
                 'TOTAL COST (PKR/kWh)': round(cost_per_kwh, 2),
                 'PRODUCTION COST (PKR/kWh)': round(source.production_cost, 2),
                 'CARBON COST (PKR/kWh)': round(source.carbon_emission * self.carbon_cost_pkr_kg, 2),
                 'CURRENT COST/HR': round(current_cost_hr, 2),
-                'OPTIMIZED COST/HR': round(optimized_cost_hr, 2),
-                'OPTIMIZED CHARGE (kW)': 0.0,
-                'OPTIMIZED DISCHARGE (kW)': 0.0,
+                'COST OPTIMIZED COST/HR': round(cost_optimized_cost_hr, 2),
+                'RELIABILITY OPTIMIZED COST/HR': round(rel_optimized_cost_hr, 2),
+                'COST OPTIMIZED CHARGE (kW)': 0.0,
+                'RELIABILITY OPTIMIZED CHARGE (kW)': 0.0,
+                'COST OPTIMIZED DISCHARGE (kW)': 0.0,
+                'RELIABILITY OPTIMIZED DISCHARGE (kW)': 0.0,
                 'GRID FEED (kW)': round(source.grid_feed_power, 2),
                 'RELIABILITY SCORE': round(source.reliability_score, 2),
                 'EFFICIENCY SCORE': round(source.efficiency_score, 2),
@@ -994,12 +1261,15 @@ class PowerOptimizer:
             results.append(row)
             
             total_current_load += current_load
-            total_optimized_load += effective_optimized
+            total_cost_optimized_load += cost_effective_optimized
+            total_rel_optimized_load += rel_effective_optimized
             total_current_cost += current_cost_hr
-            total_optimized_cost += optimized_cost_hr
+            total_cost_optimized_cost += cost_optimized_cost_hr
+            total_rel_optimized_cost += rel_optimized_cost_hr
             total_current_kvar += current_kvar
-            total_optimized_kvar += optimized_kvar
-        
+            total_cost_optimized_kvar += cost_optimized_kvar
+            total_rel_optimized_kvar += rel_optimized_kvar
+
         # Process all BESS systems
         for bess in self.bess_systems:
             current_bess_discharge = abs(bess.current_power_input) if bess.current_power_input < 0 else 0
@@ -1011,12 +1281,13 @@ class PowerOptimizer:
                 current_kvar = 0
 
             try:
-                optimized_kvar = bess.optimized_reactive_load
+                cost_optimized_kvar = bess.optimized_cost_reactive_load
             except AttributeError:
-                optimized_kvar = 0
+                cost_optimized_kvar = 0
 
             current_cost_hr = bess.get_current_operating_cost()
-            optimized_cost_hr = bess.get_optimized_operating_cost()
+            cost_optimized_cost_hr = bess.get_optimized_operating_cost()
+            rel_optimized_cost_hr = bess.get_optimized_operating_cost()
             
             if bess.mode == 'charging':
                 status = f'Charging (SOC: {bess.current_soc}%)'
@@ -1028,16 +1299,21 @@ class PowerOptimizer:
             row = {
                 'ENERGY SOURCE': bess.name,
                 'CURRENT LOAD (kW)': round(current_bess_discharge, 2),
-                'OPTIMIZED LOAD (kW)': round(optimized_bess_load, 2),
+                'COST OPTIMIZED LOAD (kW)': round(optimized_bess_load, 2),
+                'RELIABILITY OPTIMIZED LOAD (kW)': round(optimized_bess_load, 2),
                 'CURRENT KVAR (kVAR)': round(current_kvar, 2),
-                'OPTIMIZED KVAR (kVAR)': round(optimized_kvar, 2),
+                'COST OPTIMIZED KVAR (kVAR)': round(cost_optimized_kvar, 2),
+                'RELIABILITY OPTIMIZED KVAR (kVAR)': round(cost_optimized_kvar, 2),
                 'TOTAL COST (PKR/kWh)': round(bess.total_cost, 2),
                 'PRODUCTION COST (PKR/kWh)': round(bess.production_cost, 2),
                 'CARBON COST (PKR/kWh)': round(bess.carbon_emission * self.carbon_cost_pkr_kg, 2),
                 'CURRENT COST/HR': round(current_cost_hr, 2),
-                'OPTIMIZED COST/HR': round(optimized_cost_hr, 2),
-                'OPTIMIZED CHARGE (kW)': round(bess.optimized_charge_power, 2),
-                'OPTIMIZED DISCHARGE (kW)': round(bess.optimized_discharge_power, 2),
+                'COST OPTIMIZED COST/HR': round(cost_optimized_cost_hr, 2),
+                'RELIABILITY OPTIMIZED COST/HR': round(rel_optimized_cost_hr, 2),
+                'COST OPTIMIZED CHARGE (kW)': round(bess.optimized_charge_power, 2),
+                'RELIABILITY OPTIMIZED CHARGE (kW)': round(bess.optimized_charge_power, 2),
+                'COST OPTIMIZED DISCHARGE (kW)': round(bess.optimized_discharge_power, 2),
+                'RELIABILITY OPTIMIZED DISCHARGE (kW)': round(bess.optimized_discharge_power, 2),
                 'GRID FEED (kW)': 0.0,
                 'RELIABILITY SCORE': round(bess.reliability_score, 2),
                 'EFFICIENCY SCORE': round(0, 2),  # Placeholder
@@ -1047,27 +1323,35 @@ class PowerOptimizer:
             results.append(row)
             
             total_current_load += current_bess_discharge
-            total_optimized_load += optimized_bess_load
+            total_cost_optimized_load += optimized_bess_load
+            total_rel_optimized_load += optimized_bess_load
             total_current_cost += current_cost_hr
-            total_optimized_cost += optimized_cost_hr
+            total_cost_optimized_cost += cost_optimized_cost_hr
+            total_rel_optimized_cost += rel_optimized_cost_hr
             total_current_kvar += current_kvar
-            total_optimized_kvar += optimized_kvar
+            total_cost_optimized_kvar += cost_optimized_kvar
+            total_rel_optimized_kvar += rel_optimized_kvar
 
         # Add total row
-        total_savings_hr = total_current_cost - total_optimized_cost
+        total_savings_hr = total_current_cost - total_cost_optimized_cost
         results.append({
             'ENERGY SOURCE': 'TOTAL',
             'CURRENT LOAD (kW)': round(total_current_load, 2),
-            'OPTIMIZED LOAD (kW)': round(total_optimized_load, 2),
+            'COST OPTIMIZED LOAD (kW)': round(total_cost_optimized_load, 2),
+            'RELIABILITY OPTIMIZED LOAD (kW)': round(total_rel_optimized_load, 2),
             'CURRENT KVAR (kVAR)': round(total_current_kvar, 2),
-            'OPTIMIZED KVAR (kVAR)': round(total_optimized_kvar, 2),
+            'COST OPTIMIZED KVAR (kVAR)': round(total_cost_optimized_kvar, 2),
+            'RELIABILITY OPTIMIZED KVAR (kVAR)': round(total_rel_optimized_kvar, 2),
             'TOTAL COST (PKR/kWh)': '',
             'PRODUCTION COST (PKR/kWh)': '',
             'CARBON COST (PKR/kWh)': '',
             'CURRENT COST/HR': round(total_current_cost, 2),
-            'OPTIMIZED COST/HR': round(total_optimized_cost, 2),
-            'OPTIMIZED CHARGE (kW)': round(sum(b.optimized_charge_power for b in self.bess_systems), 2),
-            'OPTIMIZED DISCHARGE (kW)': round(sum(b.optimized_discharge_power for b in self.bess_systems), 2),
+            'COST OPTIMIZED COST/HR': round(total_cost_optimized_cost, 2),
+            'RELIABILITY OPTIMIZED COST/HR': round(total_rel_optimized_cost, 2),
+            'COST OPTIMIZED CHARGE (kW)': round(sum(b.optimized_charge_power for b in self.bess_systems), 2),
+            'RELIABILITY OPTIMIZED CHARGE (kW)': round(sum(b.optimized_charge_power for b in self.bess_systems), 2),
+            'COST OPTIMIZED DISCHARGE (kW)': round(sum(b.optimized_discharge_power for b in self.bess_systems), 2),
+            'RELIABILITY OPTIMIZED DISCHARGE (kW)': round(sum(b.optimized_discharge_power for b in self.bess_systems), 2),
             'GRID FEED (kW)': round(total_grid_feed, 2),
             'RELIABILITY SCORE': '',
             'EFFICIENCY SCORE': '',
