@@ -6,7 +6,7 @@
             "name": "BESS",
             "capacity_kwh": 1000.0,
             "power_rating_kw": 500.0,
-            "current_soc": 65,
+            "current_soc": 26,
             "discharge_threshold": 50,
             "charge_threshold": 85,
             "power_input": 0.0,

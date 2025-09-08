@@ -8,11 +8,15 @@ import plotly.express as px
 import plotly.graph_objects as go
 # from power_optimizer_modified_n6a2 import PowerOptimizer, PowerSource, BatteryEnergyStorageSystem
 
-from power_optimizer_modified_n6a3_claude import PowerOptimizer, PowerSource, BatteryEnergyStorageSystem
+# from power_optimizer_modified_n6a3_claude2 import PowerOptimizer, PowerSource, BatteryEnergyStorageSystem
+
+
+# from power_optimizer_modified_n6a3_claude import PowerOptimizer, PowerSource, BatteryEnergyStorageSystem
 # clude working
 
 # from power_optimizer_modified_n6a3_gpt import PowerOptimizer, PowerSource, BatteryEnergyStorageSystem
 # gpt not correct
+from nc import PowerOptimizer, PowerSource, BatteryEnergyStorageSystem
 
 
 # from power_optimizer_modified_n6a3_grok import PowerOptimizer, PowerSource, BatteryEnergyStorageSystem
