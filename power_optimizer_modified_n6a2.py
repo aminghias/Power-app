@@ -174,7 +174,8 @@ class PowerOptimizer:
         }
         
         self.grid_connected = True
-        self.allow_grid_feed = True
+        # self.allow_grid_feed = True
+        self.allow_grid_feed = False
         self.grid_feed_limit = 1000
         
         self.total_load_demand = 0
@@ -416,6 +417,59 @@ class PowerOptimizer:
         inverted_reliability = 11 - source.reliability_score
         return source.total_cost + inverted_reliability
 
+    # def optimize_power_allocation_cost(self):
+    #     """Cost-optimized power allocation (original)"""
+    #     available_sources = [s for s in self.sources if s.available]
+        
+    #     if not available_sources:
+    #         print("No available power sources")
+    #         return
+        
+    #     total_active_load = sum(s.current_active_load for s in self.sources)
+    #     total_reactive_load = sum(s.current_reactive_load for s in self.sources)
+
+    #     # Add BESS current contribution to total load
+    #     total_bess_discharge = sum(abs(b.current_power_input) for b in self.bess_systems if b.current_power_input < 0)
+    #     total_active_load += total_bess_discharge
+        
+    #     print(f"Total active load (including BESS): {total_active_load:.2f} kW")
+    #     print(f"Total reactive load: {total_reactive_load:.2f} kVAR")
+        
+    #     # Calculate efficiency scores for optimization
+    #     for source in available_sources:
+    #         source.efficiency_score = self.calculate_efficiency_score(source)
+        
+    #     # Sort sources by efficiency (lowest cost first)
+    #     available_sources.sort(key=lambda x: x.efficiency_score)
+        
+    #     # Reset optimized loads
+    #     for source in available_sources:
+    #         source.optimized_cost_active_load = 0
+    #         source.optimized_cost_reactive_load = 0
+        
+    #     # Optimize BESS operation first
+    #     self.optimize_bess_operation()
+        
+    #     # Calculate remaining load after BESS optimization
+    #     total_bess_optimized_discharge = sum(b.optimized_discharge_power for b in self.bess_systems)
+    #     remaining_active_load = total_active_load - total_bess_optimized_discharge
+        
+    #     # Allocate remaining load to sources
+    #     self.allocate_cost_active_power(available_sources, remaining_active_load, use_effective=False)
+        
+    #     self.apply_load_sharing_cost(available_sources, redundancy_level=0, use_effective=False)
+        
+    #     kvar_sources = [s for s in self.sources]
+    #     kvar_sources.extend(self.bess_systems)
+    #     print('The KVAR sources are:')
+    #     for kvar in kvar_sources:
+    #         print(f" - {kvar.name}")
+
+    #     self.allocate_cost_reactive_power(kvar_sources, total_reactive_load)
+        
+    #     if not self.grid_connected:
+    #         self.handle_off_grid_operation_cost(available_sources)
+
     def optimize_power_allocation_cost(self):
         """Cost-optimized power allocation (original)"""
         available_sources = [s for s in self.sources if s.available]
@@ -469,125 +523,126 @@ class PowerOptimizer:
         if not self.grid_connected:
             self.handle_off_grid_operation_cost(available_sources)
 
-    def optimize_power_allocation_reliability(self):
-        """Reliability-optimized power allocation"""
-        # Reset optimized
-        for source in self.sources:
-            source.optimized_rel_active_load = 0
-            source.optimized_rel_reactive_load = 0
-            source.effective_max = source.max_capacity
-            source.grid_feed_power = 0
-        
-        for bess in self.bess_systems:
-            bess.optimized_charge_power = 0
-            bess.optimized_discharge_power = 0
-        
-        self.grid_feed = 0
-        
-        # Determine redundancy level and prefer_bess
-        total_loss = self.tripping_cost + self.production_loss_hourly
-        if total_loss > self.very_high_threshold:
-            self.redundancy_level = 2
-            self.prefer_bess = True
-        elif total_loss > self.high_threshold:
-            self.redundancy_level = 1
-            self.prefer_bess = False
-        else:
-            self.redundancy_level = 0
-            self.prefer_bess = False
-        
-        available_sources = [s for s in self.sources if s.available]
-        
-        if not available_sources:
-            print("No available power sources")
-            return
-        
-        total_active_load = sum(s.current_active_load for s in self.sources)
-        total_reactive_load = sum(s.current_reactive_load for s in self.sources)
 
-        # Add BESS current contribution to total load
-        total_bess_discharge = sum(abs(b.current_power_input) for b in self.bess_systems if b.current_power_input < 0)
-        total_active_load += total_bess_discharge
+    # def optimize_power_allocation_reliability(self):
+    #     """Reliability-optimized power allocation"""
+    #     # Reset optimized
+    #     for source in self.sources:
+    #         source.optimized_rel_active_load = 0
+    #         source.optimized_rel_reactive_load = 0
+    #         source.effective_max = source.max_capacity
+    #         source.grid_feed_power = 0
         
-        print(f"Total active load (including BESS): {total_active_load:.2f} kW")
-        print(f"Total reactive load: {total_reactive_load:.2f} kVAR")
+    #     for bess in self.bess_systems:
+    #         bess.optimized_charge_power = 0
+    #         bess.optimized_discharge_power = 0
         
-        # Calculate efficiency scores
-        for source in available_sources:
-            source.efficiency_score = self.calculate_efficiency_score(source)
+    #     self.grid_feed = 0
         
-        # Sort by reliability descending, then total cost ascending
-        available_sources.sort(key=lambda x: (-x.reliability_score, x.total_cost))
+    #     # Determine redundancy level and prefer_bess
+    #     total_loss = self.tripping_cost + self.production_loss_hourly
+    #     if total_loss > self.very_high_threshold:
+    #         self.redundancy_level = 2
+    #         self.prefer_bess = True
+    #     elif total_loss > self.high_threshold:
+    #         self.redundancy_level = 1
+    #         self.prefer_bess = False
+    #     else:
+    #         self.redundancy_level = 0
+    #         self.prefer_bess = False
         
-        # Apply reserve for renewable variability on engines
-        solar_running = sum(s.current_active_load for s in self.sources if s.name.lower().startswith('solar'))
-        wind_running = sum(s.current_active_load for s in self.sources if s.name.lower().startswith('wind'))
-        sum_engine_max = sum(s.max_capacity for s in self.sources if s.name.lower().startswith('diesel') or s.name.lower().startswith('gas'))
+    #     available_sources = [s for s in self.sources if s.available]
         
-        sp = (0.5 * solar_running) / sum_engine_max if sum_engine_max > 0 else 0
-        wp = (0.7 * wind_running) / sum_engine_max if sum_engine_max > 0 else 0
-        reserve_factor = max(0.2, 1 - 0.1 - sp - wp)
+    #     if not available_sources:
+    #         print("No available power sources")
+    #         return
         
-        for source in self.sources:
-            if source.name.lower().startswith('diesel') or source.name.lower().startswith('gas'):
-                source.effective_max = source.max_capacity * reserve_factor
+    #     total_active_load = sum(s.current_active_load for s in self.sources)
+    #     total_reactive_load = sum(s.current_reactive_load for s in self.sources)
+
+    #     # Add BESS current contribution to total load
+    #     total_bess_discharge = sum(abs(b.current_power_input) for b in self.bess_systems if b.current_power_input < 0)
+    #     total_active_load += total_bess_discharge
         
-        # Optimize BESS
-        if self.prefer_bess:
-            for bess in self.bess_systems:
-                bess.check_availability()
-                if bess.available:
-                    max_discharge = bess.get_available_discharge_capacity()
-                    bess.optimized_discharge_power = min(bess.power_rating_kw, max_discharge)
-                    bess.mode = 'discharging'
-        else:
-            self.optimize_bess_operation()
+    #     print(f"Total active load (including BESS): {total_active_load:.2f} kW")
+    #     print(f"Total reactive load: {total_reactive_load:.2f} kVAR")
         
-        # Remaining load
-        total_bess_optimized_discharge = sum(b.optimized_discharge_power for b in self.bess_systems)
-        remaining_active_load = total_active_load - total_bess_optimized_discharge
+    #     # Calculate efficiency scores
+    #     for source in available_sources:
+    #         source.efficiency_score = self.calculate_efficiency_score(source)
         
-        # Allocate
-        self.allocate_rel_active_power(available_sources, remaining_active_load, use_effective=True)
+    #     # Sort by reliability descending, then total cost ascending
+    #     available_sources.sort(key=lambda x: (-x.reliability_score, x.total_cost))
         
-        self.apply_load_sharing_rel(available_sources, redundancy_level=self.redundancy_level, use_effective=True)
+    #     # Apply reserve for renewable variability on engines
+    #     solar_running = sum(s.current_active_load for s in self.sources if s.name.lower().startswith('solar'))
+    #     wind_running = sum(s.current_active_load for s in self.sources if s.name.lower().startswith('wind'))
+    #     sum_engine_max = sum(s.max_capacity for s in self.sources if s.name.lower().startswith('diesel') or s.name.lower().startswith('gas'))
         
-        kvar_sources = [s for s in self.sources]
-        kvar_sources.extend(self.bess_systems)
+    #     sp = (0.5 * solar_running) / sum_engine_max if sum_engine_max > 0 else 0
+    #     wp = (0.7 * wind_running) / sum_engine_max if sum_engine_max > 0 else 0
+    #     reserve_factor = max(0.2, 1 - 0.1 - sp - wp)
         
-        self.allocate_rel_reactive_power(kvar_sources, total_reactive_load)
+    #     for source in self.sources:
+    #         if source.name.lower().startswith('diesel') or source.name.lower().startswith('gas'):
+    #             source.effective_max = source.max_capacity * reserve_factor
         
-        # Handle excess if any
-        remaining_active_load = total_active_load - sum(b.optimized_discharge_power for b in self.bess_systems)
-        total_allocated = sum(s.optimized_rel_active_load for s in self.sources)
-        excess = total_allocated - remaining_active_load
-        if excess > 0:
-            # Try to charge BESS with excess
-            for bess in self.bess_systems:
-                bess.check_availability()
-                if bess.available and bess.can_charge(excess):
-                    bess.optimized_charge_power += excess
-                    if bess.optimized_discharge_power > 0:
-                        bess.optimized_discharge_power = max(0, bess.optimized_discharge_power - excess)
-                    bess.mode = 'charging' if bess.optimized_charge_power > 0 else bess.mode
-                    excess = 0
-                    break
-            if excess > 0:
-                for bess in self.bess_systems:
-                    if bess.available and bess.can_charge(excess):
-                        bess.optimized_charge_power += excess
-                        bess.mode = 'charging' if bess.optimized_charge_power > 0 else bess.mode
-                        excess = 0
-                        break
-            if excess > 0 and self.allow_grid_feed:
-                self.grid_feed = min(excess, self.grid_feed_limit)
-                for s in self.sources:
-                    if s.name.lower() == 'grid':
-                        s.grid_feed_power = self.grid_feed
-                        break
+    #     # Optimize BESS
+    #     if self.prefer_bess:
+    #         for bess in self.bess_systems:
+    #             bess.check_availability()
+    #             if bess.available:
+    #                 max_discharge = bess.get_available_discharge_capacity()
+    #                 bess.optimized_discharge_power = min(bess.power_rating_kw, max_discharge)
+    #                 bess.mode = 'discharging'
+    #     else:
+    #         self.optimize_bess_operation()
         
-        if not self.grid_connected:
-            self.handle_off_grid_operation_rel(available_sources)
+    #     # Remaining load
+    #     total_bess_optimized_discharge = sum(b.optimized_discharge_power for b in self.bess_systems)
+    #     remaining_active_load = total_active_load - total_bess_optimized_discharge
+        
+    #     # Allocate
+    #     self.allocate_rel_active_power(available_sources, remaining_active_load, use_effective=True)
+        
+    #     self.apply_load_sharing_rel(available_sources, redundancy_level=self.redundancy_level, use_effective=True)
+        
+    #     kvar_sources = [s for s in self.sources]
+    #     kvar_sources.extend(self.bess_systems)
+        
+    #     self.allocate_rel_reactive_power(kvar_sources, total_reactive_load)
+        
+    #     # Handle excess if any
+    #     remaining_active_load = total_active_load - sum(b.optimized_discharge_power for b in self.bess_systems)
+    #     total_allocated = sum(s.optimized_rel_active_load for s in self.sources)
+    #     excess = total_allocated - remaining_active_load
+    #     if excess > 0:
+    #         # Try to charge BESS with excess
+    #         for bess in self.bess_systems:
+    #             bess.check_availability()
+    #             if bess.available and bess.can_charge(excess):
+    #                 bess.optimized_charge_power += excess
+    #                 if bess.optimized_discharge_power > 0:
+    #                     bess.optimized_discharge_power = max(0, bess.optimized_discharge_power - excess)
+    #                 bess.mode = 'charging' if bess.optimized_charge_power > 0 else bess.mode
+    #                 excess = 0
+    #                 break
+    #         if excess > 0:
+    #             for bess in self.bess_systems:
+    #                 if bess.available and bess.can_charge(excess):
+    #                     bess.optimized_charge_power += excess
+    #                     bess.mode = 'charging' if bess.optimized_charge_power > 0 else bess.mode
+    #                     excess = 0
+    #                     break
+    #         if excess > 0 and self.allow_grid_feed:
+    #             self.grid_feed = min(excess, self.grid_feed_limit)
+    #             for s in self.sources:
+    #                 if s.name.lower() == 'grid':
+    #                     s.grid_feed_power = self.grid_feed
+    #                     break
+        
+    #     if not self.grid_connected:
+    #         self.handle_off_grid_operation_rel(available_sources)
     
     def optimize_bess_operation(self):
         """Optimize BESS charging/discharging strategy"""
@@ -627,36 +682,7 @@ class PowerOptimizer:
                 bess.mode = 'standby'
                 print(f"BESS {bess.name} in standby mode")
 
-    # def handle_off_grid_operation(self, sources):
-    #     print("\nOff-grid operation mode activated")
-        
-    #     sources = [s for s in sources if s.source_type != 'grid']
-        
-    #     total_generation = sum(s.optimized_cost_active_load for s in sources)
-    #     total_demand = self.total_load_demand
-        
-    #     for bess in self.bess_systems:
-    #         if bess.mode == 'discharging':
-    #             total_generation += bess.optimized_discharge_power
-        
-    #     if total_generation < total_demand:
-    #         deficit = total_demand - total_generation
-    #         print(f"Generation deficit in off-grid mode: {deficit:.2f} kW")
-            
-    #         for source in sources:
-    #             if source.optimized_cost_active_load < source.effective_max:
-    #                 additional_capacity = min(deficit, 
-    #                                           source.effective_max - source.optimized_cost_active_load)
-    #                 source.optimized_cost_active_load += additional_capacity
-    #                 deficit -= additional_capacity
-    #                 print(f"Increased {source.name} output by {additional_capacity:.2f} kW")
-                    
-    #                 if deficit <= 0:
-    #                     break
-            
-    #         if deficit > 0:
-    #             print(f"Load shedding required: {deficit:.2f} kW")
-
+    
 
     def handle_off_grid_operation_cost(self, sources):
         print("\nOff-grid operation mode activated")
@@ -727,60 +753,7 @@ class PowerOptimizer:
             if deficit > 0:
                 print(f"Load shedding required: {deficit:.2f} kW")
 
-    # def allocate_active_power(self, sources, total_load, use_effective=False):
-    #     remaining_load = total_load
-    #     print('The sources are:')
-    #     for source in sources:
-    #         print(f" - {source.name} (Max: {source.max_capacity} kW, Min: {source.min_capacity} kW)")
-    #     print(f"Total load: {total_load} kW")
-    #     print(f"Remaining load: {remaining_load} kW")
-
-    #     solar_sources = [s for s in sources if s.name.lower().startswith('solar')]
-    #     non_renewable_sources = [s for s in sources if not s.name.lower().startswith('solar') and not s.name.lower().startswith('wind') and not s.name.lower().startswith('bess')]
-    #     bess_discharging = any(b.optimized_discharge_power > 0 for b in self.bess_systems)
-    #     if solar_sources and total_load <= sum(s.effective_max if use_effective else s.max_capacity for s in solar_sources) and not bess_discharging:
-    #         print("Applying solar-first optimization strategy")
-            
-    #         for source in non_renewable_sources:
-    #             if source.name.lower() != 'grid' and source.available:
-    #                 if remaining_load > source.min_capacity:
-    #                     min_allocation = source.min_capacity
-    #                     source.optimized_cost_active_load = min_allocation
-    #                     remaining_load -= min_allocation
-    #                     print(f"Minimum allocation to {source.name}: {min_allocation:.2f} kW")
-    #                     break
-    #             elif source.name.lower() == 'grid' and self.grid_connected:
-    #                 min_allocation = 10
-    #                 source.optimized_cost_active_load = min_allocation
-    #                 remaining_load -= min_allocation
-    #                 print(f"Minimum allocation to {source.name}: {min_allocation:.2f} kW")
-            
-    #         for source in solar_sources:
-    #             if remaining_load > 0:
-    #                 max_cap = source.effective_max if use_effective else source.max_capacity
-    #                 allocation = min(remaining_load, max_cap)
-    #                 source.optimized_cost_active_load = allocation
-    #                 remaining_load -= allocation
-    #                 print(f"Solar allocation to {source.name}: {allocation:.2f} kW")
-        
-    #     else:
-    #         for source in sources:
-    #             if remaining_load <= 0:
-    #                 break
-                
-    #             max_cap = source.effective_max if use_effective else source.max_capacity
-    #             max_possible = min(max_cap, remaining_load)
-    #             min_required = source.min_capacity
-                
-    #             if max_possible >= min_required:
-    #                 allocation = max_possible
-    #                 source.optimized_cost_active_load = allocation
-    #                 remaining_load -= allocation
-    #                 print(f"Optimized allocation to {source.name}: {allocation:.2f} kW")
-    #             else:
-    #                 source.optimized_cost_active_load = 0
-
-    #     return remaining_load
+    
 
     def allocate_cost_active_power(self, sources, total_load, use_effective=False):
         remaining_load = total_load
@@ -891,7 +864,214 @@ class PowerOptimizer:
                     source.optimized_rel_active_load = 0
 
         return remaining_load
-   
+
+    def optimize_power_allocation_reliability(self):
+        """Reliability-optimized power allocation"""
+        # Reset optimized
+        for source in self.sources:
+            source.optimized_rel_active_load = 0
+            source.optimized_rel_reactive_load = 0
+            source.effective_max = source.max_capacity
+            source.grid_feed_power = 0
+        
+        for bess in self.bess_systems:
+            bess.optimized_charge_power = 0
+            bess.optimized_discharge_power = 0
+        
+        self.grid_feed = 0
+        
+        # Determine redundancy level and prefer_bess
+        total_loss = self.tripping_cost + self.production_loss_hourly
+        if total_loss > self.very_high_threshold:
+            self.redundancy_level = 2
+            self.prefer_bess = True
+        elif total_loss > self.high_threshold:
+            self.redundancy_level = 1
+            self.prefer_bess = False
+        else:
+            self.redundancy_level = 0
+            self.prefer_bess = False
+        
+        available_sources = [s for s in self.sources if s.available]
+        
+        if not available_sources:
+            print("No available power sources")
+            return
+        
+        total_active_load = sum(s.current_active_load for s in self.sources)
+        total_reactive_load = sum(s.current_reactive_load for s in self.sources)
+
+        # Add BESS current contribution to total load
+        total_bess_discharge = sum(abs(b.current_power_input) for b in self.bess_systems if b.current_power_input < 0)
+        total_active_load += total_bess_discharge
+        
+        print(f"Total active load (including BESS): {total_active_load:.2f} kW")
+        print(f"Total reactive load: {total_reactive_load:.2f} kVAR")
+        
+        # Calculate efficiency scores
+        for source in available_sources:
+            source.efficiency_score = self.calculate_efficiency_score(source)
+        
+        # Sort by reliability descending, then total cost ascending
+        # available_sources.sort(key=lambda x: (-x.reliability_score, x.total_cost))
+        available_sources.sort(key=lambda x: x.efficiency_score)
+        
+        # Apply reserve for renewable variability on engines
+        solar_running = sum(s.current_active_load for s in self.sources if s.name.lower().startswith('solar'))
+        wind_running = sum(s.current_active_load for s in self.sources if s.name.lower().startswith('wind'))
+        sum_engine_max = sum(s.max_capacity for s in self.sources if s.name.lower().startswith('diesel') or s.name.lower().startswith('gas'))
+        
+        sp = (0.5 * solar_running) / sum_engine_max if sum_engine_max > 0 else 0
+        wp = (0.7 * wind_running) / sum_engine_max if sum_engine_max > 0 else 0
+        reserve_factor = max(0.2, 1 - 0.1 - sp - wp)
+        
+        for source in self.sources:
+            if source.name.lower().startswith('diesel') or source.name.lower().startswith('gas'):
+                source.effective_max = source.max_capacity * reserve_factor
+        
+        # Optimize BESS
+        if self.prefer_bess:
+            for bess in self.bess_systems:
+                bess.check_availability()
+                if bess.available:
+                    max_discharge = bess.get_available_discharge_capacity()
+                    bess.optimized_discharge_power = min(bess.power_rating_kw, max_discharge)
+                    bess.mode = 'discharging'
+        else:
+            self.optimize_bess_operation()
+        
+        # Remaining load
+        total_bess_optimized_discharge = sum(b.optimized_discharge_power for b in self.bess_systems)
+        remaining_active_load = total_active_load - total_bess_optimized_discharge
+        
+        # Allocate
+        self.allocate_rel_active_power(available_sources, remaining_active_load, use_effective=True)
+        
+        self.apply_load_sharing_rel(available_sources, redundancy_level=self.redundancy_level, use_effective=True)
+
+        # sum of allocated reliability optimized loads
+        total_allocated_rel_opt_load = sum(s.optimized_rel_active_load for s in available_sources)
+        print(f"Total allocated reliability optimized load: {total_allocated_rel_opt_load:.2f} kW")
+
+        # print total running load 
+        total_running_load = sum(s.current_active_load for s in available_sources)
+        print(f"Total running load: {total_running_load:.2f} kW")
+
+        # find difference
+        load_difference = total_running_load - total_allocated_rel_opt_load
+
+        # NEW: Check and fix sources exceeding effective_max
+        excess_load = load_difference if load_difference > 0 else 0
+        # excess_load = 0
+        for source in available_sources:
+            if source.optimized_rel_active_load > source.effective_max:
+                excess = source.optimized_rel_active_load - source.effective_max
+                source.optimized_rel_active_load = source.effective_max
+                excess_load += excess
+                print(f"Source {source.name} exceeded effective_max. Reduced to {source.effective_max:.2f} kW. Excess: {excess:.2f} kW")
+        
+        # NEW: Redistribute excess load
+        if excess_load > 0:
+            print(f"Redistributing excess load: {excess_load:.2f} kW")
+            
+            # Step 1: Try to assign to machines with zero active power
+            zero_load_sources = [s for s in available_sources if s.optimized_rel_active_load == 0 and s.effective_max > 0]
+            # zero_load_sources.sort(key=lambda x: (-x.reliability_score, x.total_cost))
+            zero_load_sources.sort(key=lambda x: x.efficiency_score)
+            # sort by total cost ascending
+            # zero_load_sources.sort(key=lambda x: (x.total_cost, -x.reliability_score))
+
+            for source in zero_load_sources:
+                if excess_load <= 0:
+                    break
+                # assignable = min(excess_load, source.effective_max)
+                assignable = max(source.min_capacity,min(excess_load, source.effective_max))
+                source.optimized_rel_active_load = assignable
+                excess_load -= assignable
+                print(f"Assigned {assignable:.2f} kW to previously unused source {source.name}")
+            
+            # Step 2: Try to assign remaining to machines that still have capacity
+            if excess_load > 0:
+                for source in available_sources:
+                    if excess_load <= 0:
+                        break
+                    available_capacity = source.effective_max - source.optimized_rel_active_load
+                    if available_capacity > 0:
+                        # assignable = min(excess_load, available_capacity)
+                        assignable = max(source.min_capacity,min(excess_load, available_capacity))
+                        source.optimized_rel_active_load += assignable
+                        excess_load -= assignable
+                        print(f"Assigned additional {assignable:.2f} kW to source {source.name}")
+            
+            # Step 3: Try to assign to BESS (charging mode)
+            if excess_load > 0:
+                for bess in self.bess_systems:
+                    if excess_load <= 0:
+                        break
+                    bess.check_availability()
+                    if bess.available and bess.can_charge(excess_load):
+                        assignable = min(excess_load, bess.power_rating_kw - bess.optimized_charge_power)
+                        bess.optimized_charge_power += assignable
+                        bess.mode = 'charging' if bess.optimized_charge_power > 0 else bess.mode
+                        excess_load -= assignable
+                        print(f"Assigned {assignable:.2f} kW to BESS {bess.name} for charging")
+            
+            # Step 4: Try to assign to grid feed
+            if excess_load > 0 and self.allow_grid_feed:
+                grid_feed_capacity = self.grid_feed_limit - self.grid_feed
+                if grid_feed_capacity > 0:
+                    assignable = min(excess_load, grid_feed_capacity)
+                    self.grid_feed += assignable
+                    excess_load -= assignable
+                    print(f"Fed {assignable:.2f} kW to grid")
+                    
+                    # Update grid source if exists
+                    for source in self.sources:
+                        if source.name.lower() == 'grid':
+                            source.grid_feed_power = self.grid_feed
+                            break
+            
+            # Step 5: Report any remaining unassigned load
+            if excess_load > 0:
+                print(f"WARNING: Unable to assign {excess_load:.2f} kW of load. System capacity insufficient.")
+        
+        kvar_sources = [s for s in self.sources]
+        kvar_sources.extend(self.bess_systems)
+        
+        self.allocate_rel_reactive_power(kvar_sources, total_reactive_load)
+        
+        # Handle excess if any (original logic)
+        remaining_active_load = total_active_load - sum(b.optimized_discharge_power for b in self.bess_systems)
+        total_allocated = sum(s.optimized_rel_active_load for s in self.sources)
+        excess = total_allocated - remaining_active_load
+        if excess > 0:
+            # Try to charge BESS with excess
+            for bess in self.bess_systems:
+                bess.check_availability()
+                if bess.available and bess.can_charge(excess):
+                    bess.optimized_charge_power += excess
+                    if bess.optimized_discharge_power > 0:
+                        bess.optimized_discharge_power = max(0, bess.optimized_discharge_power - excess)
+                    bess.mode = 'charging' if bess.optimized_charge_power > 0 else bess.mode
+                    excess = 0
+                    break
+            if excess > 0:
+                for bess in self.bess_systems:
+                    if bess.available and bess.can_charge(excess):
+                        bess.optimized_charge_power += excess
+                        bess.mode = 'charging' if bess.optimized_charge_power > 0 else bess.mode
+                        excess = 0
+                        break
+            if excess > 0 and self.allow_grid_feed:
+                self.grid_feed = min(excess, self.grid_feed_limit)
+                for s in self.sources:
+                    if s.name.lower() == 'grid':
+                        s.grid_feed_power = self.grid_feed
+                        break
+        
+        if not self.grid_connected:
+            self.handle_off_grid_operation_rel(available_sources)
+    
 
     def allocate_cost_reactive_power(self, sources, total_reactive_load):
         """Allocate reactive power among sources"""
