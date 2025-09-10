@@ -4,9 +4,9 @@
     "bess_systems": [
         {
             "name": "BESS",
-            "capacity_kwh": 1000.0,
-            "power_rating_kw": 500.0,
-            "current_soc": 26,
+            "capacity_kwh": 11000.0,
+            "power_rating_kw": 6000.0,
+            "current_soc": 68,
             "discharge_threshold": 50,
             "charge_threshold": 85,
             "power_input": 0.0,
@@ -21,80 +21,17 @@
             "production_cost": 3.0,
             "carbon_emission": 0.05,
             "min_capacity": 0.0,
-            "max_capacity": 500.0,
+            "max_capacity": 1100.0,
             "reliability_score": 9.0,
             "device_id": null
         },
         {
-            "name": "Diesel_1",
-            "production_cost": 20.0,
-            "carbon_emission": 0.8,
-            "min_capacity": 100.0,
-            "max_capacity": 500.0,
-            "reliability_score": 7.0,
-            "device_id": null
-        },
-        {
-            "name": "Diesel_2",
-            "production_cost": 20.0,
-            "carbon_emission": 0.8,
-            "min_capacity": 100.0,
-            "max_capacity": 500.0,
-            "reliability_score": 7.0,
-            "device_id": null
-        },
-        {
-            "name": "Diesel_3",
-            "production_cost": 20.0,
-            "carbon_emission": 0.8,
-            "min_capacity": 100.0,
-            "max_capacity": 500.0,
-            "reliability_score": 7.0,
-            "device_id": null
-        },
-        {
-            "name": "Diesel_4",
-            "production_cost": 20.0,
-            "carbon_emission": 0.8,
-            "min_capacity": 100.0,
-            "max_capacity": 500.0,
-            "reliability_score": 7.0,
-            "device_id": null
-        },
-        {
-            "name": "Gas_1",
-            "production_cost": 15.0,
-            "carbon_emission": 0.5,
-            "min_capacity": 100.0,
-            "max_capacity": 500.0,
-            "reliability_score": 8.0,
-            "device_id": null
-        },
-        {
-            "name": "Gas_2",
-            "production_cost": 15.0,
-            "carbon_emission": 0.5,
-            "min_capacity": 100.0,
-            "max_capacity": 500.0,
-            "reliability_score": 8.0,
-            "device_id": null
-        },
-        {
-            "name": "Gas_3",
-            "production_cost": 15.0,
-            "carbon_emission": 0.5,
-            "min_capacity": 100.0,
-            "max_capacity": 500.0,
-            "reliability_score": 8.0,
-            "device_id": null
-        },
-        {
-            "name": "Gas_4",
-            "production_cost": 15.0,
-            "carbon_emission": 0.5,
-            "min_capacity": 100.0,
-            "max_capacity": 500.0,
-            "reliability_score": 8.0,
+            "name": "Wind",
+            "production_cost": 4.0,
+            "carbon_emission": 0.03,
+            "min_capacity": 599.99,
+            "max_capacity": 6500.0,
+            "reliability_score": 8.5,
             "device_id": null
         },
         {
@@ -105,6 +42,33 @@
             "max_capacity": 1500.0,
             "reliability_score": 5.0,
             "device_id": 1
+        },
+        {
+            "name": "Diesel_Generator_2.5_MW_Unit_1",
+            "production_cost": 20.0,
+            "carbon_emission": 0.8,
+            "min_capacity": 500.0,
+            "max_capacity": 2500.0,
+            "reliability_score": 7.0,
+            "device_id": null
+        },
+        {
+            "name": "Diesel_Generator_1.5_MW_Unit_1",
+            "production_cost": 20.0,
+            "carbon_emission": 0.8,
+            "min_capacity": 300.0,
+            "max_capacity": 1500.0,
+            "reliability_score": 7.0,
+            "device_id": null
+        },
+        {
+            "name": "Diesel_Generator_1.5_MW_Unit_2",
+            "production_cost": 20.0,
+            "carbon_emission": 0.8,
+            "min_capacity": 300.0,
+            "max_capacity": 1500.0,
+            "reliability_score": 7.0,
+            "device_id": null
         }
     ]
 }
