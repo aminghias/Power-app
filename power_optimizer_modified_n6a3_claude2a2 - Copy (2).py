@@ -35,14 +35,8 @@ class BatteryEnergyStorageSystem:
         self.current_discharge_power = 0
         
         # Optimized operation
-        # self.optimized_charge_power = 0
-        # self.optimized_discharge_power = 0
-
-        self.cost_optimized_charge_power = 0
-        self.cost_optimized_discharge_power = 0
-
-        self.rel_optimized_charge_power = 0
-        self.rel_optimized_discharge_power = 0
+        self.optimized_charge_power = 0
+        self.optimized_discharge_power = 0
         
         # Grid interaction
         self.grid_feed_power = 0
@@ -97,32 +91,13 @@ class BatteryEnergyStorageSystem:
             return abs(self.current_power_input) * self.total_cost
         return 0
     
-    # def get_optimized_operating_cost(self):
-    #     """Calculate optimized operating cost"""
-    #     if self.optimized_charge_power > 0:
-    #         return self.optimized_charge_power * self.total_cost
-    #     elif self.optimized_discharge_power > 0:
-    #         return self.optimized_discharge_power * self.total_cost
-    #     return 0
-
-    def get_cost_optimized_operating_cost(self):
+    def get_optimized_operating_cost(self):
         """Calculate optimized operating cost"""
-        if self.cost_optimized_charge_power > 0:
-            return self.cost_optimized_charge_power * self.total_cost
-        elif self.cost_optimized_discharge_power > 0:
-            return self.cost_optimized_discharge_power * self.total_cost
+        if self.optimized_charge_power > 0:
+            return self.optimized_charge_power * self.total_cost
+        elif self.optimized_discharge_power > 0:
+            return self.optimized_discharge_power * self.total_cost
         return 0
-    
-    def get_rel_optimized_operating_cost(self):
-        """Calculate reliability optimized operating cost"""
-        if self.rel_optimized_charge_power > 0:
-            return self.rel_optimized_charge_power * self.total_cost
-        elif self.rel_optimized_discharge_power > 0:
-            return self.rel_optimized_discharge_power * self.total_cost
-        return 0
-
-
-
 
 class PowerSource:
     """Power source class with optimization capabilities"""
@@ -483,10 +458,10 @@ class PowerOptimizer:
             source.optimized_cost_reactive_load = 0
         
         # Optimize BESS operation first
-        self.optimize_bess_operation_cost()
+        self.optimize_bess_operation()
         
         # Calculate remaining load after BESS optimization
-        total_bess_optimized_discharge = sum(b.cost_optimized_discharge_power for b in self.bess_systems)
+        total_bess_optimized_discharge = sum(b.optimized_discharge_power for b in self.bess_systems)
         remaining_active_load = total_active_load - total_bess_optimized_discharge
         
         # Allocate remaining load to sources
@@ -564,52 +539,7 @@ class PowerOptimizer:
         if remaining > 0:
             print(f"WARNING: Could not reduce {remaining:.2f} kW - minimum capacity constraints")
 
-    # def optimize_bess_operation(self):
-    #     """Optimize BESS charging/discharging strategy"""
-    #     for bess in self.bess_systems:
-    #         print(f"\nOptimizing BESS: {bess.name}")
-    #         print(f"Current SOC: {bess.current_soc}%")
-    #         print(f"Discharge Threshold: {bess.discharge_threshold}%")
-    #         print(f"Charge Threshold: {bess.charge_threshold}%")
-            
-    #         # Reset optimized values
-    #         # bess.optimized_charge_power = 0
-    #         # bess.optimized_discharge_power = 0
-
-    #         bess.optimized_charge_power = 0
-    #         bess.optimized_discharge_power = 0
-            
-    #         # Determine optimal operation mode
-    #         if bess.current_soc >= bess.discharge_threshold:
-    #             # Should discharge to provide power
-    #             max_discharge = min(
-    #                 bess.power_rating_kw,
-    #                 bess.get_available_discharge_capacity()
-    #             )
-    #             bess.optimized_discharge_power = max_discharge
-    #             bess.mode = 'discharging'
-    #             print(f"BESS {bess.name} optimized for discharging: {max_discharge:.2f} kW")
-                
-    #         elif bess.current_soc <= bess.charge_threshold:
-    #             # Should charge when excess power available
-    #             max_charge = min(
-    #                 bess.power_rating_kw,
-    #                 bess.get_available_charge_capacity()
-    #             )
-    #             print(f"For BESS {bess.name}, the maximum charge power is: {max_charge:.2f} kW")
-    #             print(f"For BESS {bess.name}, the available charge capacity is: {bess.get_available_charge_capacity():.2f} kWh")
-    #             print(f"For BESS {bess.name}, the current power input is: {bess.current_power_input:.2f} kW")
-    #             print(f"For BESS {bess.name}, the power rating is: {bess.power_rating_kw:.2f} kW")
-    #             bess.optimized_charge_power = max_charge
-    #             bess.mode = 'charging'
-    #             print(f"BESS {bess.name} optimized for charging: {max_charge:.2f} kW")
-                
-    #         else:
-    #             # Maintain current operation or standby
-    #             bess.mode = 'standby'
-    #             print(f"BESS {bess.name} in standby mode")
-
-    def optimize_bess_operation_rel(self):
+    def optimize_bess_operation(self):
         """Optimize BESS charging/discharging strategy"""
         for bess in self.bess_systems:
             print(f"\nOptimizing BESS: {bess.name}")
@@ -618,12 +548,9 @@ class PowerOptimizer:
             print(f"Charge Threshold: {bess.charge_threshold}%")
             
             # Reset optimized values
-            # bess.optimized_charge_power = 0
-            # bess.optimized_discharge_power = 0
-
-            bess.rel_optimized_charge_power = 0
-            bess.rel_optimized_discharge_power = 0
-
+            bess.optimized_charge_power = 0
+            bess.optimized_discharge_power = 0
+            
             # Determine optimal operation mode
             if bess.current_soc >= bess.discharge_threshold:
                 # Should discharge to provide power
@@ -631,7 +558,7 @@ class PowerOptimizer:
                     bess.power_rating_kw,
                     bess.get_available_discharge_capacity()
                 )
-                bess.rel_optimized_discharge_power = max_discharge
+                bess.optimized_discharge_power = max_discharge
                 bess.mode = 'discharging'
                 print(f"BESS {bess.name} optimized for discharging: {max_discharge:.2f} kW")
                 
@@ -645,7 +572,7 @@ class PowerOptimizer:
                 print(f"For BESS {bess.name}, the available charge capacity is: {bess.get_available_charge_capacity():.2f} kWh")
                 print(f"For BESS {bess.name}, the current power input is: {bess.current_power_input:.2f} kW")
                 print(f"For BESS {bess.name}, the power rating is: {bess.power_rating_kw:.2f} kW")
-                bess.rel_optimized_charge_power = max_charge
+                bess.optimized_charge_power = max_charge
                 bess.mode = 'charging'
                 print(f"BESS {bess.name} optimized for charging: {max_charge:.2f} kW")
                 
@@ -654,72 +581,15 @@ class PowerOptimizer:
                 bess.mode = 'standby'
                 print(f"BESS {bess.name} in standby mode")
 
-    def optimize_bess_operation_cost(self):
-        """Optimize BESS charging/discharging strategy"""
-        for bess in self.bess_systems:
-            print(f"\nOptimizing BESS: {bess.name}")
-            print(f"Current SOC: {bess.current_soc}%")
-            print(f"Discharge Threshold: {bess.discharge_threshold}%")
-            print(f"Charge Threshold: {bess.charge_threshold}%")
-            
-            # Reset optimized values
-            # bess.optimized_charge_power = 0
-            # bess.optimized_discharge_power = 0
-
-            bess.cost_optimized_charge_power = 0
-            bess.cost_optimized_discharge_power = 0
-            
-            # Determine optimal operation mode
-            if bess.current_soc >= bess.discharge_threshold:
-                # Should discharge to provide power
-                max_discharge = min(
-                    bess.power_rating_kw,
-                    bess.get_available_discharge_capacity()
-                )
-                bess.cost_optimized_discharge_power = max_discharge
-                bess.mode = 'discharging'
-                print(f"BESS {bess.name} optimized for discharging: {max_discharge:.2f} kW")
-                
-            elif bess.current_soc <= bess.charge_threshold:
-                # Should charge when excess power available
-                max_charge = min(
-                    bess.power_rating_kw,
-                    bess.get_available_charge_capacity()
-                )
-                print(f"For BESS {bess.name}, the maximum charge power is: {max_charge:.2f} kW")
-                print(f"For BESS {bess.name}, the available charge capacity is: {bess.get_available_charge_capacity():.2f} kWh")
-                print(f"For BESS {bess.name}, the current power input is: {bess.current_power_input:.2f} kW")
-                print(f"For BESS {bess.name}, the power rating is: {bess.power_rating_kw:.2f} kW")
-                bess.cost_optimized_charge_power = max_charge
-                bess.mode = 'charging'
-                print(f"BESS {bess.name} optimized for charging: {max_charge:.2f} kW")
-                
-            else:
-                # Maintain current operation or standby
-                bess.mode = 'standby'
-                print(f"BESS {bess.name} in standby mode")
-
-    # def optimize_bess_for_standby(self):
-    #     """Keep BESS in standby mode for enhanced reliability"""
-    #     for bess in self.bess_systems:
-    #         print(f"\nKeeping BESS {bess.name} in standby for enhanced reliability")
-    #         print(f"Current SOC: {bess.current_soc}%")
-            
-    #         # Reset optimized values - keep in standby
-    #         bess.optimized_charge_power = 0
-    #         bess.optimized_discharge_power = 0
-    #         bess.mode = 'standby'
-    #         print(f"BESS {bess.name} kept in standby mode for emergency availability")
-
-    def optimize_bess_for_standby_rel(self):
+    def optimize_bess_for_standby(self):
         """Keep BESS in standby mode for enhanced reliability"""
         for bess in self.bess_systems:
             print(f"\nKeeping BESS {bess.name} in standby for enhanced reliability")
             print(f"Current SOC: {bess.current_soc}%")
             
             # Reset optimized values - keep in standby
-            bess.rel_optimized_charge_power = 0
-            bess.rel_optimized_discharge_power = 0
+            bess.optimized_charge_power = 0
+            bess.optimized_discharge_power = 0
             bess.mode = 'standby'
             print(f"BESS {bess.name} kept in standby mode for emergency availability")
 
@@ -733,7 +603,7 @@ class PowerOptimizer:
         
         for bess in self.bess_systems:
             if bess.mode == 'discharging':
-                total_generation += bess.cost_optimized_discharge_power
+                total_generation += bess.optimized_discharge_power
         
         if total_generation < total_demand:
             deficit = total_demand - total_generation
@@ -772,7 +642,7 @@ class PowerOptimizer:
         
         for bess in self.bess_systems:
             if bess.mode == 'discharging':
-                total_generation += bess.rel_optimized_discharge_power
+                total_generation += bess.optimized_discharge_power
         
         if total_generation < total_demand:
             deficit = total_demand - total_generation
@@ -802,7 +672,7 @@ class PowerOptimizer:
 
         solar_sources = [s for s in sources if s.name.lower().startswith('solar')]
         non_renewable_sources = [s for s in sources if not s.name.lower().startswith('solar') and not s.name.lower().startswith('wind') and not s.name.lower().startswith('bess')]
-        bess_discharging = any(b.cost_optimized_discharge_power > 0 for b in self.bess_systems)
+        bess_discharging = any(b.optimized_discharge_power > 0 for b in self.bess_systems)
         
         if solar_sources and total_load <= sum(s.effective_max if use_effective else s.max_capacity for s in solar_sources) and not bess_discharging:
             print("Applying solar-first optimization strategy")
@@ -919,7 +789,7 @@ class PowerOptimizer:
             # Normal reliability mode logic (same as before)
             solar_sources = [s for s in sources if s.name.lower().startswith('solar')]
             non_renewable_sources = [s for s in sources if not s.name.lower().startswith('solar') and not s.name.lower().startswith('wind') and not s.name.lower().startswith('bess')]
-            bess_discharging = any(b.rel_optimized_discharge_power > 0 for b in self.bess_systems)
+            bess_discharging = any(b.optimized_discharge_power > 0 for b in self.bess_systems)
             
             if solar_sources and total_load <= sum(s.effective_max if use_effective else s.max_capacity for s in solar_sources) and not bess_discharging:
                 print("Applying solar-first optimization strategy")
@@ -987,13 +857,10 @@ class PowerOptimizer:
             source.effective_max = source.max_capacity
             source.grid_feed_power = 0
         
-        for bess in self.bess_systems:
+        # for bess in self.bess_systems:
         #     bess.optimized_charge_power = 0
         #     bess.optimized_discharge_power = 0
-
-            bess.rel_optimized_charge_power = 0
-            bess.rel_optimized_discharge_power = 0
-
+        
         self.grid_feed = 0
         
         # Determine reliability mode and parameters
@@ -1058,19 +925,19 @@ class PowerOptimizer:
         # Optimize BESS based on mode
         if self.enhanced_reliability_mode:
             # Keep BESS in standby for enhanced reliability
-            self.optimize_bess_for_standby_rel()
+            self.optimize_bess_for_standby()
         elif self.prefer_bess:
             for bess in self.bess_systems:
                 bess.check_availability()
                 if bess.available:
                     max_discharge = bess.get_available_discharge_capacity()
-                    bess.rel_optimized_discharge_power = min(bess.power_rating_kw, max_discharge)
+                    bess.optimized_discharge_power = min(bess.power_rating_kw, max_discharge)
                     bess.mode = 'discharging'
         else:
-            self.optimize_bess_operation_rel()
+            self.optimize_bess_operation()
         
         # Calculate remaining load after BESS optimization
-        total_bess_optimized_discharge = sum(b.rel_optimized_discharge_power for b in self.bess_systems)
+        total_bess_optimized_discharge = sum(b.optimized_discharge_power for b in self.bess_systems)
         remaining_active_load = total_active_load - total_bess_optimized_discharge
         
         # Allocate remaining load
@@ -1156,9 +1023,9 @@ class PowerOptimizer:
                     break
                 bess.check_availability()
                 if bess.available and bess.can_charge(remaining):
-                    assignable = min(remaining, bess.power_rating_kw - bess.rel_optimized_charge_power)
-                    bess.rel_optimized_charge_power += assignable
-                    bess.mode = 'charging' if bess.rel_optimized_charge_power > 0 else bess.mode
+                    assignable = min(remaining, bess.power_rating_kw - bess.optimized_charge_power)
+                    bess.optimized_charge_power += assignable
+                    bess.mode = 'charging' if bess.optimized_charge_power > 0 else bess.mode
                     remaining -= assignable
                     print(f"Assigned {assignable:.2f} kW to BESS {bess.name} for charging")
         
@@ -1634,11 +1501,7 @@ class PowerOptimizer:
         # Process all BESS systems
         for bess in self.bess_systems:
             current_bess_discharge = abs(bess.current_power_input) if bess.current_power_input < 0 else 0
-            
-            cost_optimized_bess_load = bess.cost_optimized_discharge_power
-            rel_optimized_bess_load = bess.rel_optimized_discharge_power
-            
-            # optimized_bess_load = bess.optimized_discharge_power
+            optimized_bess_load = bess.optimized_discharge_power
 
             try:
                 current_kvar = bess.current_reactive_load
@@ -1656,8 +1519,8 @@ class PowerOptimizer:
                 rel_optimized_kvar = 0
 
             current_cost_hr = bess.get_current_operating_cost()
-            cost_optimized_cost_hr = bess.get_cost_optimized_operating_cost()
-            rel_optimized_cost_hr = bess.get_rel_optimized_operating_cost()
+            cost_optimized_cost_hr = bess.get_optimized_operating_cost()
+            rel_optimized_cost_hr = bess.get_optimized_operating_cost()
             
             try:
                 total_cost = bess.total_cost
@@ -1693,37 +1556,28 @@ class PowerOptimizer:
                 status += ' - Emergency Ready'
 
             # bess.optimized_charge_power must be same as input power to bess in charging mode
-            print("BESS Mode:", bess.mode, "Current Power Input:", bess.current_power_input, "Cost Optimized Charge Power before:", bess.cost_optimized_charge_power)
-            print("BESS Mode:", bess.mode, "Current Power Input:", bess.current_power_input, "Reliability Optimized Charge Power before:", bess.rel_optimized_charge_power)
-            # if bess.mode == 'charging':
-            #     print('Currently charging Cost optimized, setting optimized charge power to current input')
-            #     bess.cost_optimized_charge_power = bess.current_power_input
+            print("BESS Mode:", bess.mode, "Current Power Input:", bess.current_power_input, "Optimized Charge Power before:", bess.optimized_charge_power)
+            if bess.mode == 'charging':
+                print('Currently charging, setting optimized charge power to current input')
+                bess.optimized_charge_power = bess.current_power_input
 
             # print optimized bess load
-            print(f"BESS {bess.name} - Current Discharge: {current_bess_discharge} kW, Cost Optimized Discharge: {cost_optimized_bess_load} kW")
-            print(f"BESS {bess.name} - Current Discharge: {current_bess_discharge} kW, Reliability Optimized Discharge: {rel_optimized_bess_load} kW")
+            print(f"BESS {bess.name} - Current Discharge: {current_bess_discharge} kW, Optimized Discharge: {optimized_bess_load} kW")
 
             row = {
                 'ENERGY SOURCE': bess.name,
                 'MAXIMUM CAPACITY (kW)': bess.power_rating_kw,
                 'MINIMUM CAPACITY (kW)': 0,
                 'CURRENT GENERATION (kW)': round(current_bess_discharge, 2),
-
-                'COST OPTIMIZED GENERATION (kW)': round(cost_optimized_bess_load, 2),
-                'RELIABILITY OPTIMIZED GENERATION (kW)': round(rel_optimized_bess_load, 2),
-
-
-                # 'COST OPTIMIZED GENERATION (kW)': round(optimized_bess_load, 2),
-                # # 'COST OPTIMIZED DISCHARGE (kW)': round(optimized_bess_load, 2),
-                # 'RELIABILITY OPTIMIZED GENERATION (kW)': round(optimized_bess_load, 2),
-
+                'COST OPTIMIZED GENERATION (kW)': round(optimized_bess_load, 2),
+                # 'COST OPTIMIZED DISCHARGE (kW)': round(optimized_bess_load, 2),
+                'RELIABILITY OPTIMIZED GENERATION (kW)': round(optimized_bess_load, 2),
                 'CURRENT KVAR (kVAR)': round(current_kvar, 2),
                 'COST OPTIMIZED KVAR (kVAR)': round(cost_optimized_kvar, 2),
                 'RELIABILITY OPTIMIZED KVAR (kVAR)': round(rel_optimized_kvar, 2),
                 'TOTAL COST (PKR/kWh)': round(total_cost, 2),
                 'PRODUCTION COST (PKR/kWh)': round(production_cost, 2),
                 'CARBON COST (PKR/kWh)': round(carbon_emission * self.carbon_cost_pkr_kg, 2),
-
                 'CURRENT COST/HR': round(current_cost_hr, 2),
                 'COST OPTIMIZED COST/HR': round(cost_optimized_cost_hr, 2),
                 # 'CURRENT COST/HR': 0.0,
@@ -1731,23 +1585,12 @@ class PowerOptimizer:
                 # 'RELIABILITY OPTIMIZED COST/HR': 0.0,
 
                 'RELIABILITY OPTIMIZED COST/HR': round(rel_optimized_cost_hr, 2),
-
-                'COST OPTIMIZED CHARGE (kW)': round(bess.cost_optimized_charge_power, 2),
-                'RELIABILITY OPTIMIZED CHARGE (kW)': round(bess.rel_optimized_charge_power, 2),
-
-                # 'COST OPTIMIZED CHARGE (kW)': round(bess.optimized_charge_power, 2),
-                # 'RELIABILITY OPTIMIZED CHARGE (kW)': round(bess.optimized_charge_power, 2),
-
-
+                'COST OPTIMIZED CHARGE (kW)': round(bess.optimized_charge_power, 2),
+                'RELIABILITY OPTIMIZED CHARGE (kW)': round(bess.optimized_charge_power, 2),
                 # 'COST OPTIMIZED DISCHARGE (kW)': round(bess.optimized_discharge_power, 2),
                 # 'RELIABILITY OPTIMIZED DISCHARGE (kW)': round(bess.optimized_discharge_power, 2),
-
-                'COST OPTIMIZED DISCHARGE (kW)': round(bess.cost_optimized_discharge_power, 2),
-                'RELIABILITY OPTIMIZED DISCHARGE (kW)': round(bess.rel_optimized_discharge_power, 2),
-
-
-                # 'COST OPTIMIZED DISCHARGE (kW)': round(optimized_bess_load, 2),
-                # 'RELIABILITY OPTIMIZED DISCHARGE (kW)': round(optimized_bess_load, 2),
+                'COST OPTIMIZED DISCHARGE (kW)': round(optimized_bess_load, 2),
+                'RELIABILITY OPTIMIZED DISCHARGE (kW)': round(optimized_bess_load, 2),
                 'GRID FEED (kW)': 0.0,
                 'RELIABILITY SCORE': round(reliability_score, 2),
                 'EFFICIENCY SCORE': round(efficiency_score, 2),
@@ -1757,8 +1600,8 @@ class PowerOptimizer:
             results.append(row)
             
             total_current_load += current_bess_discharge
-            total_cost_optimized_load += cost_optimized_bess_load
-            total_rel_optimized_load += rel_optimized_bess_load
+            total_cost_optimized_load += optimized_bess_load
+            total_rel_optimized_load += optimized_bess_load
             total_current_cost += current_cost_hr
             total_cost_optimized_cost += cost_optimized_cost_hr
             total_rel_optimized_cost += rel_optimized_cost_hr
@@ -1790,10 +1633,10 @@ class PowerOptimizer:
             'CURRENT COST/HR': round(total_current_cost, 2),
             'COST OPTIMIZED COST/HR': round(total_cost_optimized_cost, 2),
             'RELIABILITY OPTIMIZED COST/HR': round(total_rel_optimized_cost, 2),
-            'COST OPTIMIZED CHARGE (kW)': round(sum(b.cost_optimized_charge_power for b in self.bess_systems), 2),
-            'RELIABILITY OPTIMIZED CHARGE (kW)': round(sum(b.rel_optimized_charge_power for b in self.bess_systems), 2),
-            'COST OPTIMIZED DISCHARGE (kW)': round(sum(b.cost_optimized_discharge_power for b in self.bess_systems), 2),
-            'RELIABILITY OPTIMIZED DISCHARGE (kW)': round(sum(b.rel_optimized_discharge_power for b in self.bess_systems), 2),
+            'COST OPTIMIZED CHARGE (kW)': round(sum(b.optimized_charge_power for b in self.bess_systems), 2),
+            'RELIABILITY OPTIMIZED CHARGE (kW)': round(sum(b.optimized_charge_power for b in self.bess_systems), 2),
+            'COST OPTIMIZED DISCHARGE (kW)': round(sum(b.optimized_discharge_power for b in self.bess_systems), 2),
+            'RELIABILITY OPTIMIZED DISCHARGE (kW)': round(sum(b.optimized_discharge_power for b in self.bess_systems), 2),
             'GRID FEED (kW)': round(total_grid_feed, 2),
             'RELIABILITY SCORE': '',
             'EFFICIENCY SCORE': '',

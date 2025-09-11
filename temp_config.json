@@ -4,12 +4,12 @@
     "bess_systems": [
         {
             "name": "BESS",
-            "capacity_kwh": 1000.0,
-            "power_rating_kw": 500.0,
-            "current_soc": 9,
-            "discharge_threshold": 20,
-            "charge_threshold": 99,
-            "power_input": -220.0,
+            "capacity_kwh": 11000.0,
+            "power_rating_kw": 6000.0,
+            "current_soc": 55,
+            "discharge_threshold": 50,
+            "charge_threshold": 85,
+            "power_input": 2700.0,
             "production_cost": 2.0,
             "carbon_emission": 0.1,
             "reliability_score": 9.0
@@ -21,8 +21,17 @@
             "production_cost": 3.0,
             "carbon_emission": 0.05,
             "min_capacity": 0.0,
-            "max_capacity": 500.0,
+            "max_capacity": 2200.0,
             "reliability_score": 9.0,
+            "device_id": null
+        },
+        {
+            "name": "Wind",
+            "production_cost": 4.0,
+            "carbon_emission": 0.03,
+            "min_capacity": 650.0,
+            "max_capacity": 6500.0,
+            "reliability_score": 8.5,
             "device_id": null
         },
         {
@@ -35,48 +44,30 @@
             "device_id": 1
         },
         {
-            "name": "Diesel_Generator_2.0_MW_Unit_1",
+            "name": "Diesel_Generator_2.5_MW_Unit_1",
             "production_cost": 20.0,
             "carbon_emission": 0.8,
-            "min_capacity": 400.0,
-            "max_capacity": 2000.0,
+            "min_capacity": 500.0,
+            "max_capacity": 2500.0,
             "reliability_score": 7.0,
             "device_id": null
         },
         {
-            "name": "Diesel_Generator_2.0_MW_Unit_2",
+            "name": "Diesel_Generator_1.5_MW_Unit_1",
             "production_cost": 20.0,
             "carbon_emission": 0.8,
-            "min_capacity": 400.0,
-            "max_capacity": 2000.0,
+            "min_capacity": 300.0,
+            "max_capacity": 1500.0,
             "reliability_score": 7.0,
             "device_id": null
         },
         {
-            "name": "Gas_Generator_1.5_MW_Unit_1",
-            "production_cost": 15.0,
-            "carbon_emission": 0.5,
+            "name": "Diesel_Generator_1.5_MW_Unit_2",
+            "production_cost": 20.0,
+            "carbon_emission": 0.8,
             "min_capacity": 300.0,
             "max_capacity": 1500.0,
-            "reliability_score": 8.0,
-            "device_id": null
-        },
-        {
-            "name": "Gas_Generator_1.5_MW_Unit_2",
-            "production_cost": 15.0,
-            "carbon_emission": 0.5,
-            "min_capacity": 300.0,
-            "max_capacity": 1500.0,
-            "reliability_score": 8.0,
-            "device_id": null
-        },
-        {
-            "name": "Gas_Generator_1.5_MW_Unit_3",
-            "production_cost": 15.0,
-            "carbon_emission": 0.5,
-            "min_capacity": 300.0,
-            "max_capacity": 1500.0,
-            "reliability_score": 8.0,
+            "reliability_score": 7.0,
             "device_id": null
         }
     ]

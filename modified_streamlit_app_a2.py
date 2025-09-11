@@ -10,7 +10,10 @@ import plotly.graph_objects as go
 
 # from power_optimizer_modified_n6a3_claude2a import PowerOptimizer, PowerSource, BatteryEnergyStorageSystem
 
-from power_optimizer_modified_n6a3_claude2a2 import PowerOptimizer, PowerSource, BatteryEnergyStorageSystem
+# from power_optimizer_modified_n6a3_claude2a2 import PowerOptimizer, PowerSource, BatteryEnergyStorageSystem
+
+from power_optimizer_modified_n6a3_claude2a2b import PowerOptimizer, PowerSource, BatteryEnergyStorageSystem
+
 
 # from power_optimizer_modified_n6a3_claude import PowerOptimizer, PowerSource, BatteryEnergyStorageSystem
 # clude working
@@ -26,7 +29,7 @@ from power_optimizer_modified_n6a3_claude2a2 import PowerOptimizer, PowerSource,
 st.set_page_config(
     page_title="Power Optimization System",
     page_icon="⚡",
-    layout="wide",F
+    layout="wide",
     initial_sidebar_state="expanded"
 )
 
@@ -221,8 +224,8 @@ def main():
     })
     
     st.sidebar.subheader("Reliability Parameters")
-    max_peak_load = st.sidebar.number_input("Max Peak Running Load (kW)", min_value=0.0, value=1000.0)
-    critical_load = st.sidebar.number_input("Total Critical Load (kW)", min_value=0.0, value=500.0)
+    max_peak_load = st.sidebar.number_input("Max Peak Running GENERATION (kW)", min_value=0.0, value=1000.0)
+    critical_load = st.sidebar.number_input("Total Critical GENERATION (kW)", min_value=0.0, value=500.0)
     tripping_cost = st.sidebar.number_input("Tripping Cost (PKR) [Material]", min_value=0.0, value=100000.0)
     production_loss = st.sidebar.number_input("Production Loss Cost (PKR/hour)", min_value=0.0, value=50000.0)
     
@@ -554,7 +557,9 @@ def main():
                         discharge_threshold = st.slider("Discharge Threshold (%)", 0, 100, 50, key=f"dis_{bess_name}")
                         charge_threshold = st.slider("Charge Threshold (%)", 0, 100, 85, key=f"charge_{bess_name}")
                     
-                    available = 20 < current_soc < 95  # Assuming min_soc=20, max_soc=95
+                    # available = 20 < current_soc < 95  # Assuming min_soc=20, max_soc=95
+                    # available = discharge_threshold < current_soc < charge_threshold
+                    available = current_soc > discharge_threshold 
                     st.info(f"SOC: {current_soc}% - {'Available' if available else 'Unavailable'}")
                     
                     st.markdown('</div>', unsafe_allow_html=True)
@@ -637,12 +642,12 @@ def main():
                     # total_savings_hr_rel = total_current_cost
                     # results_df_cost = results_df_rel.copy()
                     # results_df_cost, total_current_cost, total_savings_hr_cost = optimizer.generate_results()
-                    results_df_rel['COST OPTIMIZED LOAD (kW)'] = results_df_cost['COST OPTIMIZED LOAD (kW)']
+                    results_df_rel['COST OPTIMIZED GENERATION (kW)'] = results_df_cost['COST OPTIMIZED GENERATION (kW)']
                     results_df_rel['COST OPTIMIZED COST/HR'] = results_df_cost['COST OPTIMIZED COST/HR']
                     # results_df_rel['COST OPTIMIZED COST/HR'] = results_df_cost['COST OPTIMIZED COST/HR']
                     # results_df_rel['COST OPTIMIZED SAVINGS (%)'] = results_df_cost['COST OPTIMIZED SAVINGS (%)']
 
-                    results_df_cost['RELIABILITY OPTIMIZED LOAD (kW)'] = results_df_rel['RELIABILITY OPTIMIZED LOAD (kW)']
+                    results_df_cost['RELIABILITY OPTIMIZED GENERATION (kW)'] = results_df_rel['RELIABILITY OPTIMIZED GENERATION (kW)']
                     results_df_cost['RELIABILITY OPTIMIZED COST/HR'] = results_df_rel['RELIABILITY OPTIMIZED COST/HR']
 
 
@@ -854,8 +859,8 @@ def main():
             
             with col1c:
                 fig_power_c = go.Figure(data=[
-                    go.Bar(name='Current', x=chart_data['ENERGY SOURCE'], y=chart_data['CURRENT LOAD (kW)']),
-                    go.Bar(name='Cost Optimized', x=chart_data['ENERGY SOURCE'], y=chart_data['COST OPTIMIZED LOAD (kW)'])
+                    go.Bar(name='Current', x=chart_data['ENERGY SOURCE'], y=chart_data['CURRENT GENERATION (kW)']),
+                    go.Bar(name='Cost Optimized', x=chart_data['ENERGY SOURCE'], y=chart_data['COST OPTIMIZED GENERATION (kW)'])
                 ])
                 fig_power_c.update_layout(title="Current vs Cost Optimized Active Power", 
                                         xaxis_title="Sources", yaxis_title="Power (kW)")
@@ -875,8 +880,8 @@ def main():
 
             with col1r:
                 fig_power_r = go.Figure(data=[
-                    go.Bar(name='Current', x=chart_data['ENERGY SOURCE'], y=chart_data['CURRENT LOAD (kW)']),
-                    go.Bar(name='Reliability Optimized', x=chart_data['ENERGY SOURCE'], y=chart_data['RELIABILITY OPTIMIZED LOAD (kW)'])
+                    go.Bar(name='Current', x=chart_data['ENERGY SOURCE'], y=chart_data['CURRENT GENERATION (kW)']),
+                    go.Bar(name='Reliability Optimized', x=chart_data['ENERGY SOURCE'], y=chart_data['RELIABILITY OPTIMIZED GENERATION (kW)'])
                 ])
                 fig_power_r.update_layout(title="Current vs Reliability Optimized Active Power", 
                                         xaxis_title="Sources", yaxis_title="Power (kW)")
@@ -905,9 +910,9 @@ def main():
                 gen_type_data.append({
                     'Source': source_name,
                     'Type': gen_type,
-                    'Current': row['CURRENT LOAD (kW)'],
-                    'Cost_Opt': row['COST OPTIMIZED LOAD (kW)'],
-                    'Rel_Opt': row['RELIABILITY OPTIMIZED LOAD (kW)']
+                    'Current': row['CURRENT GENERATION (kW)'],
+                    'Cost_Opt': row['COST OPTIMIZED GENERATION (kW)'],
+                    'Rel_Opt': row['RELIABILITY OPTIMIZED GENERATION (kW)']
                 })
             
             if gen_type_data:

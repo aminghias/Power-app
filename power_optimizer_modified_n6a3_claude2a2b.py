@@ -220,6 +220,10 @@ class PowerOptimizer:
         self.redundancy_level = 0
         self.prefer_bess = False
         self.enhanced_reliability_mode = False  # New flag for enhanced reliability mode
+
+        self.total_generation = 0
+        self.total_load = 0
+        self.total_charging = 0
         
         self.grid_feed = 0
 
@@ -466,6 +470,13 @@ class PowerOptimizer:
         # Add BESS current contribution to total load
         total_bess_discharge = sum(abs(b.current_power_input) for b in self.bess_systems if b.current_power_input < 0)
         total_active_load += total_bess_discharge
+
+        total_bess_charge = sum(b.current_power_input for b in self.bess_systems if b.current_power_input > 0)
+        total_active_load -= total_bess_charge
+
+        # print charge and discharge
+        print(f"Total BESS Discharge Contribution: {total_bess_discharge:.2f} kW")
+        print(f"Total BESS Charge Contribution: {total_bess_charge:.2f} kW")
         
         print(f"Total active load (including BESS): {total_active_load:.2f} kW")
         print(f"Total reactive load: {total_reactive_load:.2f} kVAR")
@@ -484,6 +495,10 @@ class PowerOptimizer:
         
         # Optimize BESS operation first
         self.optimize_bess_operation_cost()
+
+        # now accomadate the cost_optimzed_charge in the load
+        total_active_load += sum(b.cost_optimized_charge_power for b in self.bess_systems)
+        remaining_active_load = total_active_load
         
         # Calculate remaining load after BESS optimization
         total_bess_optimized_discharge = sum(b.cost_optimized_discharge_power for b in self.bess_systems)
@@ -716,9 +731,9 @@ class PowerOptimizer:
         for bess in self.bess_systems:
             print(f"\nKeeping BESS {bess.name} in standby for enhanced reliability")
             print(f"Current SOC: {bess.current_soc}%")
-            
+            self.optimize_bess_operation_rel()
             # Reset optimized values - keep in standby
-            bess.rel_optimized_charge_power = 0
+            # bess.rel_optimized_charge_power = 0
             bess.rel_optimized_discharge_power = 0
             bess.mode = 'standby'
             print(f"BESS {bess.name} kept in standby mode for emergency availability")
@@ -1028,10 +1043,18 @@ class PowerOptimizer:
         total_active_load = sum(s.current_active_load for s in self.sources)
         total_reactive_load = sum(s.current_reactive_load for s in self.sources)
 
-        # Add BESS current contribution to total load
+        # # Add BESS current contribution to total load
+        # total_bess_discharge = sum(abs(b.current_power_input) for b in self.bess_systems if b.current_power_input < 0)
+        # total_active_load += total_bess_discharge
+
         total_bess_discharge = sum(abs(b.current_power_input) for b in self.bess_systems if b.current_power_input < 0)
         total_active_load += total_bess_discharge
-        
+
+        total_bess_charge = sum(b.current_power_input for b in self.bess_systems if b.current_power_input > 0)
+        total_active_load -= total_bess_charge
+
+        print(f"Total BESS Discharge Contribution: {total_bess_discharge:.2f} kW")
+        print(f"Total BESS Charge Contribution: {total_bess_charge:.2f} kW")
         print(f"Total active load (including BESS): {total_active_load:.2f} kW")
         print(f"Total reactive load: {total_reactive_load:.2f} kVAR")
         
@@ -1068,6 +1091,10 @@ class PowerOptimizer:
                     bess.mode = 'discharging'
         else:
             self.optimize_bess_operation_rel()
+
+        # now accomadate the cost_optimzed_charge in the load
+        total_active_load += sum(b.rel_optimized_charge_power for b in self.bess_systems)
+        remaining_active_load = total_active_load
         
         # Calculate remaining load after BESS optimization
         total_bess_optimized_discharge = sum(b.rel_optimized_discharge_power for b in self.bess_systems)
