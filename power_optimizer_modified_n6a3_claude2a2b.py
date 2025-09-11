@@ -496,10 +496,40 @@ class PowerOptimizer:
         # Optimize BESS operation first
         self.optimize_bess_operation_cost()
 
-        # now accomadate the cost_optimzed_charge in the load
-        total_active_load += sum(b.cost_optimized_charge_power for b in self.bess_systems)
-        remaining_active_load = total_active_load
+
+        charge_power = sum(b.cost_optimized_charge_power for b in self.bess_systems)
+
+        # solar_power_max= sum(s.effective_max for s in self.sources if s.name.lower().startswith('solar'))
+        # wind_power_max= sum(s.effective_max for s in self.sources if s.name.lower().startswith('wind'))
+        # renewable_power= solar_power_max + wind_power_max
+
+        # if charge_power > renewable_power:
+        #     for bess in self.bess_systems:
+        #         bess.cost_optimized_charge_power = 0.4*renewable_power/len(self.bess_systems)
+
+        # # now accomadate the cost_optimzed_charge in the load
+        # total_active_load += sum(b.cost_optimized_charge_power for b in self.bess_systems)
+        # remaining_active_load = total_active_load
+
+
+        solar_power_max= sum(s.effective_max for s in self.sources if s.name.lower().startswith('solar'))
         
+        if charge_power > solar_power_max:
+            to_charge = 0.5*solar_power_max
+            to_charge = max(to_charge, max(b.current_power_input for b in self.bess_systems))
+            for bess in self.bess_systems:
+                bess.cost_optimized_charge_power = to_charge/len(self.bess_systems)
+     
+
+        else:
+            to_charge= sum(b.cost_optimized_charge_power for b in self.bess_systems)
+        # total_active_load += sum(b.rel_optimized_charge_power for b in self.bess_systems)
+        total_active_load += to_charge
+        
+
+       
+
+
         # Calculate remaining load after BESS optimization
         total_bess_optimized_discharge = sum(b.cost_optimized_discharge_power for b in self.bess_systems)
         remaining_active_load = total_active_load - total_bess_optimized_discharge
@@ -1093,7 +1123,51 @@ class PowerOptimizer:
             self.optimize_bess_operation_rel()
 
         # now accomadate the cost_optimzed_charge in the load
-        total_active_load += sum(b.rel_optimized_charge_power for b in self.bess_systems)
+
+        # charge_power = sum(b.rel_optimized_charge_power for b in self.bess_systems)
+
+        # # if charge power is less than the solar + wind power, then we can accommodate it
+        # renewable_power = sum(s.current_active_load for s in self.sources if s.source_type == 'renewable')
+
+        # solar_power = sum(s.current_active_load for s in self.sources if s.name.lower().startswith('solar'))
+        # # wind_power = sum(s.current_active_load for s in self.sources if s.name.lower().startswith('wind'))
+        # solar_power_max= sum(s.effective_max for s in self.sources if s.name.lower().startswith('solar'))
+        
+        # if charge_power > solar_power_max:
+        #     for bess in self.bess_systems:
+        #         bess.rel_optimized_charge_power = 0.5*solar_power_max/len(self.bess_systems)
+        # # if charge_power > renewable_power:
+        #     print(f"Reducing BESS charge power from {charge_power:.2f} kW to match renewable generation of {renewable_power:.2f} kW")
+        #     # Reduce charge power proportionally
+        #     for bess in self.bess_systems:
+        #         if bess.rel_optimized_charge_power > 0:
+        #             reduction = (bess.rel_optimized_charge_power / charge_power) * (charge_power - renewable_power)
+        #             bess.rel_optimized_charge_power -= reduction
+        #             if bess.rel_optimized_charge_power < 0:
+        #                 bess.rel_optimized_charge_power = 0
+        #             print(f"BESS {bess.name} new charge power: {bess.rel_optimized_charge_power:.2f} kW")
+
+        
+        charge_power = sum(b.cost_optimized_charge_power for b in self.bess_systems)
+
+        solar_power_max= sum(s.effective_max for s in self.sources if s.name.lower().startswith('solar'))
+        # wind_power_max= sum(s.effective_max for s in self.sources if s.name.lower().startswith('wind'))
+        # renewable_power= solar_power_max + wind_power_max
+
+        if charge_power > solar_power_max:
+            to_charge = 0.5*solar_power_max
+            # maximum of power input and to_charge
+            to_charge = max(to_charge, max(b.current_power_input for b in self.bess_systems))
+            for bess in self.bess_systems:
+                bess.rel_optimized_charge_power = to_charge/len(self.bess_systems)
+            # for bess in self.bess_systems:
+            #     bess.rel_optimized_charge_power = 500
+            # #     bess.rel_optimized_charge_power = 0.4*renewable_power/len(self.bess_systems)
+
+        else:
+            to_charge= sum(b.rel_optimized_charge_power for b in self.bess_systems)
+        # total_active_load += sum(b.rel_optimized_charge_power for b in self.bess_systems)
+        total_active_load += to_charge
         remaining_active_load = total_active_load
         
         # Calculate remaining load after BESS optimization

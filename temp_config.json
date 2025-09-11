@@ -6,10 +6,10 @@
             "name": "BESS",
             "capacity_kwh": 11000.0,
             "power_rating_kw": 6000.0,
-            "current_soc": 55,
+            "current_soc": 62,
             "discharge_threshold": 50,
             "charge_threshold": 85,
-            "power_input": 2700.0,
+            "power_input": 0.0,
             "production_cost": 2.0,
             "carbon_emission": 0.1,
             "reliability_score": 9.0
@@ -30,7 +30,7 @@
             "production_cost": 4.0,
             "carbon_emission": 0.03,
             "min_capacity": 650.0,
-            "max_capacity": 6500.0,
+            "max_capacity": 6499.99,
             "reliability_score": 8.5,
             "device_id": null
         },
@@ -55,7 +55,7 @@
         {
             "name": "Diesel_Generator_1.5_MW_Unit_1",
             "production_cost": 20.0,
-            "carbon_emission": 0.8,
+            "carbon_emission": 0.78,
             "min_capacity": 300.0,
             "max_capacity": 1500.0,
             "reliability_score": 7.0,
@@ -64,7 +64,7 @@
         {
             "name": "Diesel_Generator_1.5_MW_Unit_2",
             "production_cost": 20.0,
-            "carbon_emission": 0.8,
+            "carbon_emission": 0.78,
             "min_capacity": 300.0,
             "max_capacity": 1500.0,
             "reliability_score": 7.0,
