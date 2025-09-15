@@ -961,15 +961,37 @@ class PowerOptimizer:
                 print("Grid kept at minimal standby: 5.0 kW")
 
             # even if there is still remaining load, allocate it now to BESS
+
+            
+
+
+
+
+
             if remaining_load > 0:
                 for bess in self.bess_systems:
                     if remaining_load <= 0:
                         break
-                    max_cap = bess.effective_max if use_effective else bess.max_capacity
-                    allocation = min(remaining_load, max_cap)
-                    bess.optimized_rel_active_load = allocation
-                    remaining_load -= allocation
-                    print(f"BESS allocation to {bess.name}: {allocation:.2f} kW")
+
+                    if bess.current_soc >= bess.discharge_threshold:
+                        # Should discharge to provide power
+                        max_discharge = min(
+                            bess.power_rating_kw,
+                            bess.get_available_discharge_capacity()
+                        )
+                        # bess.cost_optimized_discharge_power = max_discharge
+                        allocation = min(remaining_load, max_discharge)
+                        bess.rel_optimized_discharge_power = allocation
+                        bess.mode = 'discharging'
+                        remaining_load -= allocation
+                        # print(f"BESS {bess.name} optimized for discharging: {max_discharge:.2f} kW")
+                        print(f"BESS allocation to {bess.name}: {bess.rel_optimized_discharge_power:.2f} kW")
+                    # max_cap = bess.effective_max if use_effective else bess.max_capacity
+                    # max_cap = min(max_cap, bess.get_available_discharge_capacity())
+                    # allocation = min(remaining_load, max_cap)
+                    # bess.optimized_rel_active_load = allocation
+                    # remaining_load -= allocation
+                    # print(f"BESS allocation to {bess.name}: {allocation:.2f} kW")
 
         else:
             # Normal reliability mode logic (same as before)
