@@ -6,10 +6,10 @@
             "name": "BESS",
             "capacity_kwh": 11000.0,
             "power_rating_kw": 6000.0,
-            "current_soc": 71,
+            "current_soc": 65,
             "discharge_threshold": 50,
             "charge_threshold": 85,
-            "power_input": -1300.0,
+            "power_input": -3500.0,
             "production_cost": 2.0,
             "carbon_emission": 0.1,
             "reliability_score": 9.0
@@ -17,13 +17,31 @@
     ],
     "installed_sources": [
         {
-            "name": "Grid",
-            "production_cost": 12.0,
-            "carbon_emission": 0.6,
-            "min_capacity": 0.0,
-            "max_capacity": 4700.0,
-            "reliability_score": 5.0,
-            "device_id": 1
+            "name": "Gas_Generator_1.5_MW_Unit_1",
+            "production_cost": 15.0,
+            "carbon_emission": 0.5,
+            "min_capacity": 300.0,
+            "max_capacity": 1500.0,
+            "reliability_score": 8.0,
+            "device_id": null
+        },
+        {
+            "name": "Gas_Generator_1.5_MW_Unit_2",
+            "production_cost": 15.0,
+            "carbon_emission": 0.5,
+            "min_capacity": 300.0,
+            "max_capacity": 1500.0,
+            "reliability_score": 8.0,
+            "device_id": null
+        },
+        {
+            "name": "Gas_Generator_1.5_MW_Unit_3",
+            "production_cost": 15.0,
+            "carbon_emission": 0.5,
+            "min_capacity": 300.0,
+            "max_capacity": 1500.0,
+            "reliability_score": 8.0,
+            "device_id": null
         }
     ]
 }
