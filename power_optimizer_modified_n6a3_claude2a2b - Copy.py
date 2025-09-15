@@ -959,18 +959,7 @@ class PowerOptimizer:
                 # Even if no remaining load, keep minimal grid standby
                 grid_source[0].optimized_rel_active_load = 5
                 print("Grid kept at minimal standby: 5.0 kW")
-
-            # even if there is still remaining load, allocate it now to BESS
-            if remaining_load > 0:
-                for bess in self.bess_systems:
-                    if remaining_load <= 0:
-                        break
-                    max_cap = bess.effective_max if use_effective else bess.max_capacity
-                    allocation = min(remaining_load, max_cap)
-                    bess.optimized_rel_active_load = allocation
-                    remaining_load -= allocation
-                    print(f"BESS allocation to {bess.name}: {allocation:.2f} kW")
-
+        
         else:
             # Normal reliability mode logic (same as before)
             solar_sources = [s for s in sources if s.name.lower().startswith('solar')]
